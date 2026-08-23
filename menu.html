@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <title>Tagesordnung</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Launched from the iPhone home screen this runs standalone, without Safari's chrome. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Tagesordnung" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="apple-touch-icon" href="icon.png" />
+<link rel="icon" href="icon.png" />
+<meta name="theme-color" content="#EEEFE6" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#141A16" media="(prefers-color-scheme: dark)" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -62,7 +71,20 @@
     font-family: "Work Sans", system-ui, -apple-system, sans-serif;
     font-size: 13.5px; line-height: 1.45;
     -webkit-font-smoothing: antialiased;
-    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden;
+    height: 100vh;
+    height: 100dvh;   /* iOS: excludes the dynamic address bar */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  /* Touch targets need more room than a mouse pointer does. */
+  @media (pointer: coarse) {
+    .check { width: 24px; height: 24px; font-size: 13px; }
+    .del { opacity: 1; width: 28px; height: 28px; }
+    .item { padding: 11px 10px 11px 11px; }
+    .composer input[type="text"] { padding: 11px 12px; font-size: 16px; } /* 16px stops iOS zooming on focus */
+    .add-btn { width: 40px; height: 40px; }
+    .composer-detail input, .prio-seg button { padding: 8px 9px; font-size: 13px; }
+    .link-btn, .done-toggle { padding: 7px 8px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.001ms !important; } }
   h1,h2 { font-family: "Fraunces", Georgia, serif; margin: 0; font-weight: 600; }
