@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<title>Tagesordnung</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEEFE6;
+    --surface: #FFFFFF;
+    --surface-2: #F8F9F2;
+    --border: #DCE0D1;
+    --border-soft: #E7E9DD;
+    --ink: #1D2420;
+    --ink-muted: #5C6559;
+    --ink-faint: #92998A;
+    --accent: #2E6F5C;
+    --accent-ink: #FBFDF9;
+    --accent-soft: #DCEAE2;
+    --accent-soft-ink: #1D4A3C;
+    --critical: #C24B1E;
+    --critical-soft: #F7E1D6;
+    --critical-ink: #7A2D0F;
+    --warning: #A6740C;
+    --warning-soft: #F5E7C4;
+    --warning-ink: #6B4710;
+    --done: #6E8368;
+    --radius-s: 7px;
+    --radius-m: 11px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141A16; --surface: #1B2320; --surface-2: #202A25;
+      --border: #2C372F; --border-soft: #263029;
+      --ink: #E7ECE3; --ink-muted: #A7B2A0; --ink-faint: #6E7A69;
+      --accent: #56B296; --accent-ink: #08201A; --accent-soft: #1E3A32; --accent-soft-ink: #A9E2CD;
+      --critical: #E58254; --critical-soft: #3B2013; --critical-ink: #F3C7AD;
+      --warning: #DDAC4C; --warning-soft: #3A2E11; --warning-ink: #F0D8A0;
+      --done: #8FA989;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141A16; --surface: #1B2320; --surface-2: #202A25;
+    --border: #2C372F; --border-soft: #263029;
+    --ink: #E7ECE3; --ink-muted: #A7B2A0; --ink-faint: #6E7A69;
+    --accent: #56B296; --accent-ink: #08201A; --accent-soft: #1E3A32; --accent-soft-ink: #A9E2CD;
+    --critical: #E58254; --critical-soft: #3B2013; --critical-ink: #F3C7AD;
+    --warning: #DDAC4C; --warning-soft: #3A2E11; --warning-ink: #F0D8A0;
+    --done: #8FA989;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: "Work Sans", system-ui, -apple-system, sans-serif;
+    font-size: 13.5px; line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.001ms !important; } }
+  h1,h2 { font-family: "Fraunces", Georgia, serif; margin: 0; font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  button, input { font-family: inherit; color: inherit; font-size: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+
+  /* ---------- Quick add (fixed top) ---------- */
+  .composer {
+    flex: none; padding: 11px 12px 10px;
+    background: var(--surface); border-bottom: 1px solid var(--border-soft);
+  }
+  .composer-row { display: flex; gap: 7px; align-items: center; }
+  .composer input[type="text"] {
+    flex: 1; min-width: 0;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-s); padding: 8px 10px; color: var(--ink);
+  }
+  .composer input[type="text"]::placeholder { color: var(--ink-faint); }
+  .add-btn {
+    flex: none; width: 34px; height: 34px; border-radius: var(--radius-s);
+    border: none; background: var(--accent); color: var(--accent-ink);
+    font-size: 19px; line-height: 1; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 0.14s cubic-bezier(.2,.8,.3,1.3), filter 0.14s ease;
+  }
+  .add-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .add-btn:active { transform: scale(0.94); }
+  .add-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .composer-detail { display: flex; gap: 6px; align-items: center; margin-top: 7px; }
+  .composer-detail input[type="date"],
+  .composer-detail input[type="number"] {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-s); padding: 5px 7px; color: var(--ink); font-size: 12px;
+  }
+  .composer-detail input[type="date"] { flex: 1; min-width: 0; }
+  .composer-detail input[type="number"] { width: 62px; flex: none; }
+  .prio-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-s); overflow: hidden; flex: none; }
+  .prio-seg button {
+    background: var(--surface-2); border: none; padding: 5px 7px; font-size: 11.5px;
+    color: var(--ink-muted); border-right: 1px solid var(--border); transition: background 0.14s ease;
+  }
+  .prio-seg button:last-child { border-right: none; }
+  .prio-seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .prio-seg button:hover:not([aria-pressed="true"]) { background: var(--border-soft); }
+
+  /* ---------- Scrolling list ---------- */
+  .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 12px 14px; }
+
+  .group { margin-top: 12px; }
+  .group:first-child { margin-top: 4px; }
+  .group-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    padding: 3px 2px 6px; position: sticky; top: -6px; z-index: 2;
+    background: var(--paper);
+  }
+  .group-name { font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); }
+  .group-head[data-tone="overdue"] .group-name { color: var(--critical); }
+  .group-head[data-tone="today"] .group-name { color: var(--accent); }
+  .group-sum { font-size: 11px; color: var(--ink-faint); }
+
+  .items { display: flex; flex-direction: column; gap: 5px; }
+
+  .item {
+    display: flex; gap: 9px; align-items: flex-start;
+    background: var(--surface); border: 1px solid var(--border-soft);
+    border-radius: var(--radius-m); padding: 8px 10px 8px 9px;
+    position: relative; overflow: hidden;
+  }
+  .item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink-faint); }
+  .item[data-band="overdue"]::before, .item[data-band="tight"]::before { background: var(--critical); }
+  .item[data-band="soon"]::before { background: var(--warning); }
+  .item[data-band="plan"]::before { background: var(--accent); }
+
+  .check {
+    flex: none; width: 17px; height: 17px; margin-top: 1px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: var(--surface-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: transparent; transition: background 0.14s ease, border-color 0.14s ease;
+  }
+  .check:hover { border-color: var(--accent); color: var(--accent); }
+  .item[data-status="in_progress"] .check { border-color: var(--warning); background: var(--warning-soft); color: var(--warning-ink); }
+
+  .item-body { flex: 1; min-width: 0; }
+  .item-title { font-weight: 600; font-size: 13px; word-break: break-word; }
+  .item-notes { font-size: 11.5px; color: var(--ink-muted); margin-top: 2px; word-break: break-word; }
+  .item-meta { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-top: 4px; font-size: 11px; color: var(--ink-faint); }
+  .tag { padding: 1px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+  .tag-critical { background: var(--critical-soft); color: var(--critical-ink); }
+  .tag-warning { background: var(--warning-soft); color: var(--warning-ink); }
+  .tag-plan { background: var(--accent-soft); color: var(--accent-soft-ink); }
+
+  .del {
+    flex: none; width: 22px; height: 22px; border-radius: 6px; border: none;
+    background: transparent; color: var(--ink-faint); font-size: 12px;
+    display: inline-flex; align-items: center; justify-content: center; opacity: 0;
+    transition: opacity 0.14s ease, background 0.14s ease;
+  }
+  .item:hover .del { opacity: 1; }
+  .del:hover { background: var(--critical-soft); color: var(--critical-ink); }
+  .del[data-confirm="true"] { opacity: 1; background: var(--critical); color: #fff; width: auto; padding: 0 7px; font-size: 10.5px; font-weight: 700; }
+
+  .empty { text-align: center; color: var(--ink-muted); padding: 46px 20px; }
+  .empty h2 { font-size: 16px; margin-bottom: 5px; color: var(--ink); }
+  .empty p { margin: 0; font-size: 12.5px; }
+
+  .done-toggle {
+    margin-top: 14px; width: 100%; text-align: left; background: none; border: none;
+    color: var(--ink-faint); font-size: 11.5px; font-weight: 600; padding: 4px 2px;
+  }
+  .done-toggle:hover { color: var(--accent); }
+  .done-item { display: flex; gap: 8px; align-items: center; padding: 4px 2px; font-size: 12px; color: var(--ink-faint); }
+  .done-item .t { text-decoration: line-through; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .done-item .undo { background: none; border: none; color: var(--ink-faint); font-size: 11px; padding: 2px 5px; border-radius: 5px; }
+  .done-item .undo:hover { background: var(--surface-2); color: var(--accent); }
+
+  /* ---------- Status bar ---------- */
+  .statusbar {
+    flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 6px 12px; border-top: 1px solid var(--border-soft);
+    background: var(--surface); font-size: 11px; color: var(--ink-faint);
+  }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); margin-right: 5px; }
+  .statusbar[data-state="synced"] .dot { background: var(--accent); }
+  .statusbar[data-state="saving"] .dot { background: var(--warning); }
+  .statusbar[data-state="error"] .dot { background: var(--critical); }
+  .link-btn { background: none; border: none; color: var(--ink-faint); font-size: 11px; padding: 2px 5px; border-radius: 5px; }
+  .link-btn:hover { background: var(--surface-2); color: var(--accent); }
+
+  /* ---------- Auth ---------- */
+  .auth {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    padding: 26px 22px; gap: 3px;
+  }
+  .auth h1 { font-size: 21px; margin-bottom: 4px; }
+  .auth .sub { color: var(--ink-muted); font-size: 12.5px; margin-bottom: 16px; }
+  .auth label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 700; margin-top: 9px; display: block; }
+  .auth input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-s); padding: 8px 10px; margin-top: 4px; color: var(--ink);
+  }
+  .auth .primary {
+    width: 100%; margin-top: 14px; padding: 9px; border: none; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 600;
+    transition: transform 0.14s cubic-bezier(.2,.8,.3,1.3), filter 0.14s ease;
+  }
+  .auth .primary:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .auth .primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .auth .switch { margin-top: 11px; background: none; border: none; color: var(--accent); font-size: 12px; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+  .auth .msg { margin-top: 11px; font-size: 11.5px; color: var(--ink-muted); min-height: 1.2em; word-break: break-word; }
+  .auth .msg[data-tone="error"] { color: var(--critical-ink); }
+  .auth .msg[data-tone="ok"] { color: var(--accent-soft-ink); }
+
+  /* ---------- Settings sheet ---------- */
+  .sheet-back {
+    position: fixed; inset: 0; background: rgba(20,26,22,0.4);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .sheet {
+    width: 100%; background: var(--surface); border: 1px solid var(--border-soft);
+    border-radius: 14px; padding: 16px;
+  }
+  .sheet h2 { font-size: 15px; margin-bottom: 10px; }
+  .sheet label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 700; display: block; margin-top: 10px; }
+  .sheet input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-s); padding: 7px 9px; margin-top: 4px; color: var(--ink); font-size: 13px;
+  }
+  .sheet .who { font-size: 11.5px; color: var(--ink-faint); margin-top: 12px; word-break: break-all; }
+  .sheet-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 14px; }
+  .sheet-actions button { padding: 7px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--ink-muted); }
+  .sheet-actions .save { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .sheet .msg { font-size: 11.5px; margin-top: 9px; color: var(--ink-muted); min-height: 1em; }
+  .sheet .signout { margin-top: 12px; background: none; border: none; color: var(--critical); font-size: 12px; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="auth" id="setupScreen" style="display:none;">
+  <h1>Tagesordnung</h1>
+  <p class="sub" id="setupMsg"></p>
+</div>
+
+<!-- AUTH -->
+<div class="auth" id="authScreen" style="display:none;">
+  <h1>Tagesordnung</h1>
+  <p class="sub">Einmal anmelden — danach bleibst du auf diesem Gerät angemeldet.</p>
+  <form id="authForm">
+    <label for="authEmail">E-Mail</label>
+    <input type="email" id="authEmail" required autocomplete="username" placeholder="du@beispiel.de" />
+    <div id="pwWrap">
+      <label for="authPassword">Passwort</label>
+      <input type="password" id="authPassword" autocomplete="current-password" placeholder="Dein Passwort" />
+    </div>
+    <button type="submit" class="primary" id="authSubmit">Anmelden</button>
+  </form>
+  <button type="button" class="switch" id="authSwitch">Kein Passwort? Magic Link per E-Mail anfordern</button>
+  <p class="msg" id="authMsg"></p>
+</div>
+
+<!-- APP -->
+<div id="appRoot" style="display:none; flex:1; flex-direction:column; min-height:0;">
+  <div class="composer">
+    <form id="addForm">
+      <div class="composer-row">
+        <input type="text" id="cTitle" placeholder="Was steht an?" maxlength="140" autocomplete="off" />
+        <button type="submit" class="add-btn" id="cAdd" aria-label="To-Do hinzufügen">+</button>
+      </div>
+      <div class="composer-detail">
+        <input type="date" id="cDue" aria-label="Fällig am" />
+        <input type="number" id="cHours" min="0.25" step="0.25" value="0.5" aria-label="Aufwand in Stunden" title="Aufwand in Stunden" />
+        <div class="prio-seg" id="cPrio" role="group" aria-label="Priorität">
+          <button type="button" data-value="low" title="Niedrig">N</button>
+          <button type="button" data-value="medium" aria-pressed="true" title="Mittel">M</button>
+          <button type="button" data-value="high" title="Hoch">H</button>
+          <button type="button" data-value="critical" title="Kritisch">!</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="scroll" id="scroll"></div>
+
+  <div class="statusbar" id="statusbar" data-state="synced">
+    <span><span class="dot"></span><span id="statusText">Synchronisiert</span></span>
+    <span>
+      <button class="link-btn" id="openFull" type="button">Große Ansicht</button>
+      <button class="link-btn" id="openSettings" type="button">Einstellungen</button>
+    </span>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="sheet-back" id="sheetBack" style="display:none;">
+  <div class="sheet">
+    <h2>Einstellungen</h2>
+    <label for="capInput">Stunden pro Tag</label>
+    <input type="number" id="capInput" min="0.5" step="0.25" />
+    <label for="newPw">Passwort setzen / ändern</label>
+    <input type="password" id="newPw" autocomplete="new-password" placeholder="Mind. 6 Zeichen — dann nie wieder Magic Link" />
+    <p class="msg" id="sheetMsg"></p>
+    <p class="who" id="whoAmI"></p>
+    <button class="signout" id="signOut" type="button">Abmelden</button>
+    <div class="sheet-actions">
+      <button type="button" id="sheetCancel">Schließen</button>
+      <button type="button" class="save" id="sheetSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SUPABASE_URL = "https://noesfohqryxgxcmzwznm.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vZXNmb2hxcnl4Z3hjbXp3em5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0ODQ4NzYsImV4cCI6MjEwMzA2MDg3Nn0.iCgWxBKQVeCNkNCEw_adNVsx9fAqFSYg8DinwugCVQc";
+
+  var PRIORITY = {
+    low:      { label: "Niedrig",  weight: 1 },
+    medium:   { label: "Mittel",   weight: 2 },
+    high:     { label: "Hoch",     weight: 4 },
+    critical: { label: "Kritisch", weight: 7 }
+  };
+  var DAY_NAMES = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+
+  var state = { todos: [], settings: { dailyCapacityMinutes: 180 } };
+  var sb = null, currentUser = null, channel = null;
+  var confirmDeleteId = null, showDone = false, authMode = "password";
+
+  // ---------- helpers ----------
+  function uid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+  function startOfToday(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
+  function todayStr(){ return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function endOfDayFromStr(s){ var d = new Date(s + "T00:00:00"); d.setHours(23,59,0,0); return d; }
+  function fmtMin(m){
+    m = Math.round(m);
+    if (m < 60) return m + " Min";
+    var h = Math.floor(m/60), r = m % 60;
+    return r ? (h + ":" + (r<10?"0":"") + r + " Std") : (h + " Std");
+  }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+    });
+  }
+  function slack(t, cfg, now){
+    var daysUntil = (endOfDayFromStr(t.dueDate) - now) / 86400000;
+    return { daysUntil: daysUntil, slack: daysUntil - (t.estimatedMinutes / cfg.dailyCapacityMinutes) };
+  }
+  function score(t, cfg, now){
+    var w = PRIORITY[t.priority].weight, s = slack(t, cfg, now);
+    var v = s.slack <= 0 ? (1000 + w*10 - s.slack) : (w / s.slack);
+    if (t.status === "in_progress") v += w * 0.05;
+    return v;
+  }
+  function band(t, cfg, now){
+    var s = slack(t, cfg, now);
+    if (s.daysUntil < 0) return "overdue";
+    if (s.slack <= 0) return "tight";
+    if (s.slack <= 1) return "soon";
+    return "plan";
+  }
+
+  // ---------- mapping ----------
+  function rowToTodo(r){
+    return { id: r.id, title: r.title, dueDate: r.due_date, estimatedMinutes: r.estimated_minutes,
+             priority: r.priority, notes: r.notes || "", status: r.status,
+             createdAt: r.created_at, completedAt: r.completed_at };
+  }
+  function todoToRow(t){
+    return { id: t.id, title: t.title, due_date: t.dueDate, estimated_minutes: t.estimatedMinutes,
+             priority: t.priority, notes: t.notes || "", status: t.status, completed_at: t.completedAt };
+  }
+
+  // ---------- status ----------
+  function setStatus(s){
+    var bar = document.getElementById("statusbar");
+    bar.setAttribute("data-state", s);
+    document.getElementById("statusText").textContent =
+      ({ synced: "Synchronisiert", saving: "Speichert…", error: "Fehler — klicken zum Neuladen" })[s] || "";
+  }
+  function persist(fn){
+    setStatus("saving");
+    fn().then(function(){ setStatus("synced"); }).catch(function(e){ console.error(e); setStatus("error"); });
+  }
+
+  // ---------- db ----------
+  function dbInsert(t){ return sb.from("todos").insert(todoToRow(t)).then(function(r){ if (r.error) throw r.error; }); }
+  function dbUpdate(id, patch){
+    var row = {};
+    if ("title" in patch) row.title = patch.title;
+    if ("dueDate" in patch) row.due_date = patch.dueDate;
+    if ("estimatedMinutes" in patch) row.estimated_minutes = patch.estimatedMinutes;
+    if ("priority" in patch) row.priority = patch.priority;
+    if ("notes" in patch) row.notes = patch.notes;
+    if ("status" in patch) row.status = patch.status;
+    if ("completedAt" in patch) row.completed_at = patch.completedAt;
+    return sb.from("todos").update(row).eq("id", id).then(function(r){ if (r.error) throw r.error; });
+  }
+  function dbDelete(id){ return sb.from("todos").delete().eq("id", id).then(function(r){ if (r.error) throw r.error; }); }
+  function dbSettings(cfg){
+    return sb.from("settings").upsert({ user_id: currentUser.id, daily_capacity_minutes: cfg.dailyCapacityMinutes })
+             .then(function(r){ if (r.error) throw r.error; });
+  }
+
+  function loadData(){
+    setStatus("saving");
+    Promise.all([
+      sb.from("todos").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: true }),
+      sb.from("settings").select("*").eq("user_id", currentUser.id).maybeSingle()
+    ]).then(function(res){
+      if (res[0].error) throw res[0].error;
+      state.todos = (res[0].data || []).map(rowToTodo);
+      if (res[1].data) state.settings = { dailyCapacityMinutes: res[1].data.daily_capacity_minutes };
+      else { state.settings = { dailyCapacityMinutes: 180 }; dbSettings(state.settings).catch(function(){}); }
+      setStatus("synced");
+      render();
+    }).catch(function(e){ console.error(e); setStatus("error"); });
+  }
+
+  function subscribe(){
+    if (!currentUser) return;
+    channel = sb.channel("menu-" + currentUser.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "todos", filter: "user_id=eq." + currentUser.id }, function(p){
+        if (p.eventType === "DELETE") state.todos = state.todos.filter(function(t){ return t.id !== p.old.id; });
+        else {
+          var t = rowToTodo(p.new);
+          var i = state.todos.findIndex(function(x){ return x.id === t.id; });
+          if (i >= 0) state.todos[i] = t; else state.todos.push(t);
+        }
+        render();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "user_id=eq." + currentUser.id }, function(p){
+        if (p.eventType !== "DELETE" && p.new) { state.settings = { dailyCapacityMinutes: p.new.daily_capacity_minutes }; render(); }
+      })
+      .subscribe();
+  }
+
+  // ---------- screens ----------
+  function show(which){
+    document.getElementById("setupScreen").style.display = which === "setup" ? "flex" : "none";
+    document.getElementById("authScreen").style.display  = which === "auth"  ? "flex" : "none";
+    document.getElementById("appRoot").style.display     = which === "app"   ? "flex" : "none";
+  }
+
+  // ---------- render ----------
+  function groupLabel(dateStr, today){
+    var d = new Date(dateStr + "T00:00:00");
+    var diff = Math.round((d - today) / 86400000);
+    if (diff === 0) return { name: "Heute", tone: "today" };
+    if (diff === 1) return { name: "Morgen", tone: "" };
+    if (diff > 1 && diff < 7) return { name: DAY_NAMES[d.getDay()], tone: "" };
+    return { name: d.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }), tone: "" };
+  }
+
+  function itemHtml(t, cfg, now){
+    var b = band(t, cfg, now);
+    var tag = "";
+    if (b === "overdue" || b === "tight") tag = '<span class="tag tag-critical">' + (b === "overdue" ? "überfällig" : "kein Puffer") + '</span>';
+    else if (b === "soon") tag = '<span class="tag tag-warning">knapp</span>';
+    var h = '<div class="item" data-band="' + b + '" data-status="' + t.status + '" data-id="' + t.id + '">';
+    h += '<button class="check" data-act="cycle" data-id="' + t.id + '" title="' + (t.status === "open" ? "Als „In Arbeit“ markieren" : "Als erledigt markieren") + '">✓</button>';
+    h += '<div class="item-body">';
+    h += '<div class="item-title">' + esc(t.title) + '</div>';
+    if (t.notes) h += '<div class="item-notes">' + esc(t.notes) + '</div>';
+    h += '<div class="item-meta"><span class="mono">' + fmtMin(t.estimatedMinutes) + '</span>';
+    if (t.priority === "high" || t.priority === "critical") h += '<span class="tag tag-plan">' + PRIORITY[t.priority].label + '</span>';
+    h += tag + '</div></div>';
+    var isC = confirmDeleteId === t.id;
+    h += '<button class="del" data-act="' + (isC ? "del-yes" : "del") + '" data-id="' + t.id + '"' + (isC ? ' data-confirm="true"' : '') + ' title="Löschen">' + (isC ? "Löschen?" : "✕") + '</button>';
+    h += '</div>';
+    return h;
+  }
+
+  function render(){
+    var now = new Date(), today = startOfToday(), cfg = state.settings;
+    var open = state.todos.filter(function(t){ return t.status !== "done"; });
+    var done = state.todos.filter(function(t){ return t.status === "done"; })
+                          .sort(function(a,b){ return (b.completedAt||"").localeCompare(a.completedAt||""); });
+    var host = document.getElementById("scroll");
+    var html = "";
+
+    if (open.length === 0) {
+      html += '<div class="empty"><h2>Alles frei</h2><p>Trag oben ein, was ansteht — sortiert wird automatisch.</p></div>';
+    } else {
+      var buckets = {}, overdue = [];
+      open.forEach(function(t){
+        if (endOfDayFromStr(t.dueDate) < now) overdue.push(t);
+        else (buckets[t.dueDate] = buckets[t.dueDate] || []).push(t);
+      });
+      var byScore = function(a,b){ return score(b,cfg,now) - score(a,cfg,now); };
+
+      if (overdue.length) {
+        overdue.sort(byScore);
+        var oMin = overdue.reduce(function(s,t){ return s + t.estimatedMinutes; }, 0);
+        html += '<div class="group"><div class="group-head" data-tone="overdue">' +
+                '<span class="group-name">Überfällig</span><span class="group-sum mono">' + fmtMin(oMin) + '</span></div>' +
+                '<div class="items">' + overdue.map(function(t){ return itemHtml(t,cfg,now); }).join("") + '</div></div>';
+      }
+      Object.keys(buckets).sort().forEach(function(dateStr){
+        var list = buckets[dateStr].sort(byScore);
+        var lab = groupLabel(dateStr, today);
+        var mins = list.reduce(function(s,t){ return s + t.estimatedMinutes; }, 0);
+        html += '<div class="group"><div class="group-head" data-tone="' + lab.tone + '">' +
+                '<span class="group-name">' + esc(lab.name) + '</span><span class="group-sum mono">' + fmtMin(mins) + '</span></div>' +
+                '<div class="items">' + list.map(function(t){ return itemHtml(t,cfg,now); }).join("") + '</div></div>';
+      });
+    }
+
+    if (done.length) {
+      html += '<button class="done-toggle" data-act="toggle-done">' + (showDone ? "▾" : "▸") + " Erledigt (" + done.length + ")</button>";
+      if (showDone) {
+        html += '<div>' + done.slice(0, 30).map(function(t){
+          return '<div class="done-item"><span class="t">' + esc(t.title) + '</span>' +
+                 '<button class="undo" data-act="reopen" data-id="' + t.id + '">zurück</button></div>';
+        }).join("") + '</div>';
+      }
+    }
+    host.innerHTML = html;
+  }
+
+  // ---------- mutations ----------
+  function addTodo(d){
+    var t = { id: uid(), title: d.title, dueDate: d.dueDate, estimatedMinutes: d.estimatedMinutes,
+              priority: d.priority, notes: "", status: "open",
+              createdAt: new Date().toISOString(), completedAt: null };
+    state.todos.push(t); render();
+    persist(function(){ return dbInsert(t); });
+  }
+  function updateTodo(id, patch){
+    var t = state.todos.find(function(x){ return x.id === id; });
+    if (!t) return;
+    Object.assign(t, patch);
+    if (patch.status === "done" && !t.completedAt) t.completedAt = new Date().toISOString();
+    if (patch.status && patch.status !== "done") t.completedAt = null;
+    render();
+    var full = Object.assign({}, patch, { completedAt: t.completedAt });
+    persist(function(){ return dbUpdate(id, full); });
+  }
+  function removeTodo(id){
+    state.todos = state.todos.filter(function(x){ return x.id !== id; });
+    render();
+    persist(function(){ return dbDelete(id); });
+  }
+
+  // ---------- events ----------
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act"), id = el.getAttribute("data-id");
+    if (act === "cycle") {
+      var t = state.todos.find(function(x){ return x.id === id; });
+      if (t) updateTodo(id, { status: t.status === "open" ? "in_progress" : "done" });
+    }
+    else if (act === "del") { confirmDeleteId = id; render(); }
+    else if (act === "del-yes") { confirmDeleteId = null; removeTodo(id); }
+    else if (act === "reopen") { updateTodo(id, { status: "open" }); }
+    else if (act === "toggle-done") { showDone = !showDone; render(); }
+  });
+
+  document.addEventListener("click", function(e){
+    if (!e.target.closest("[data-act]") && !e.target.closest(".del") && confirmDeleteId) { confirmDeleteId = null; render(); }
+  }, true);
+
+  document.getElementById("cPrio").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if (!b) return;
+    Array.prototype.forEach.call(this.children, function(x){ x.removeAttribute("aria-pressed"); });
+    b.setAttribute("aria-pressed", "true");
+  });
+
+  document.getElementById("addForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var title = document.getElementById("cTitle").value.trim();
+    var due = document.getElementById("cDue").value || todayStr();
+    var hours = parseFloat(document.getElementById("cHours").value) || 0.5;
+    var pb = document.querySelector("#cPrio [aria-pressed='true']");
+    if (!title) { document.getElementById("cTitle").focus(); return; }
+    addTodo({ title: title, dueDate: due, estimatedMinutes: Math.round(hours*60),
+              priority: pb ? pb.getAttribute("data-value") : "medium" });
+    document.getElementById("cTitle").value = "";
+    document.getElementById("cTitle").focus();
+  });
+
+  document.getElementById("statusbar").addEventListener("click", function(e){
+    if (e.target.closest(".link-btn")) return;
+    if (this.getAttribute("data-state") === "error" && currentUser) loadData();
+  });
+  document.getElementById("openFull").addEventListener("click", function(){
+    window.open(location.href.replace(/menu\.html.*$/, "index.html"), "_blank");
+  });
+
+  // settings sheet
+  var sheet = document.getElementById("sheetBack");
+  document.getElementById("openSettings").addEventListener("click", function(){
+    document.getElementById("capInput").value = state.settings.dailyCapacityMinutes/60;
+    document.getElementById("newPw").value = "";
+    document.getElementById("sheetMsg").textContent = "";
+    document.getElementById("whoAmI").textContent = currentUser ? "Angemeldet als " + currentUser.email : "";
+    sheet.style.display = "flex";
+  });
+  document.getElementById("sheetCancel").addEventListener("click", function(){ sheet.style.display = "none"; });
+  sheet.addEventListener("click", function(e){ if (e.target === sheet) sheet.style.display = "none"; });
+  document.getElementById("sheetSave").addEventListener("click", function(){
+    var h = parseFloat(document.getElementById("capInput").value);
+    var pw = document.getElementById("newPw").value;
+    var msg = document.getElementById("sheetMsg");
+    if (h && h > 0 && Math.round(h*60) !== state.settings.dailyCapacityMinutes) {
+      state.settings.dailyCapacityMinutes = Math.round(h*60);
+      render();
+      persist(function(){ return dbSettings(state.settings); });
+    }
+    if (pw) {
+      if (pw.length < 6) { msg.textContent = "Passwort braucht mindestens 6 Zeichen."; return; }
+      msg.textContent = "Setze Passwort…";
+      sb.auth.updateUser({ password: pw }).then(function(r){
+        if (r.error) throw r.error;
+        msg.textContent = "Passwort gesetzt. Ab jetzt kein Magic Link mehr nötig.";
+        document.getElementById("newPw").value = "";
+      }).catch(function(err){ msg.textContent = "Fehler: " + (err.message || "unbekannt"); });
+    } else {
+      sheet.style.display = "none";
+    }
+  });
+  document.getElementById("signOut").addEventListener("click", function(){
+    sheet.style.display = "none";
+    sb.auth.signOut();
+  });
+
+  // auth
+  function setAuthMode(m){
+    authMode = m;
+    document.getElementById("pwWrap").style.display = m === "password" ? "block" : "none";
+    document.getElementById("authSubmit").textContent = m === "password" ? "Anmelden" : "Magic Link senden";
+    document.getElementById("authSwitch").textContent = m === "password"
+      ? "Kein Passwort? Magic Link per E-Mail anfordern"
+      : "Ich habe ein Passwort — damit anmelden";
+  }
+  document.getElementById("authSwitch").addEventListener("click", function(){
+    setAuthMode(authMode === "password" ? "magic" : "password");
+    document.getElementById("authMsg").textContent = "";
+  });
+  document.getElementById("authForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = document.getElementById("authEmail").value.trim();
+    var pw = document.getElementById("authPassword").value;
+    var btn = document.getElementById("authSubmit"), msg = document.getElementById("authMsg");
+    if (!email) return;
+    btn.disabled = true; msg.removeAttribute("data-tone"); msg.textContent = "Moment…";
+    var p;
+    if (authMode === "password") {
+      if (!pw) { btn.disabled = false; msg.setAttribute("data-tone","error"); msg.textContent = "Bitte Passwort eingeben."; return; }
+      p = sb.auth.signInWithPassword({ email: email, password: pw }).then(function(r){
+        if (r.error) throw r.error;
+        msg.textContent = "";
+      });
+    } else {
+      p = sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: location.href.split("#")[0] } }).then(function(r){
+        if (r.error) throw r.error;
+        msg.setAttribute("data-tone","ok");
+        msg.textContent = "Link gesendet — schau in dein Postfach (auch im Spam).";
+      });
+    }
+    p.catch(function(err){
+      msg.setAttribute("data-tone","error");
+      msg.textContent = "Fehler: " + (err && err.message ? err.message : "Bitte erneut versuchen.");
+    }).then(function(){ btn.disabled = false; });
+  });
+
+  // ---------- boot ----------
+  document.getElementById("cDue").value = todayStr();
+  document.getElementById("cDue").min = todayStr();
+  setAuthMode("password");
+
+  if (typeof window.supabase === "undefined") {
+    document.getElementById("setupMsg").textContent = "Keine Verbindung zum Internet — die App konnte nicht geladen werden.";
+    show("setup");
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "tagesordnung-auth" }
+  });
+  sb.auth.onAuthStateChange(function(evt, session){
+    if (session && session.user) {
+      var isNew = !currentUser;
+      currentUser = session.user;
+      show("app");
+      if (isNew) { loadData(); if (!channel) subscribe(); }
+      setTimeout(function(){ document.getElementById("cTitle").focus(); }, 60);
+    } else {
+      currentUser = null;
+      if (channel) { sb.removeChannel(channel); channel = null; }
+      show("auth");
+      setTimeout(function(){ document.getElementById("authEmail").focus(); }, 60);
+    }
+  });
+})();
+</script>
+</body>
+</html>
