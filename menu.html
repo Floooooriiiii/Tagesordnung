@@ -688,9 +688,25 @@
     show("setup");
     return;
   }
+  // implicit flow: the magic link carries the session in the URL hash, so it
+  // works in whichever browser the mail is opened in. (The PKCE default only
+  // works in the exact context that requested the link.) No custom storageKey —
+  // index.html and menu.html must share one session on this origin.
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "tagesordnung-auth" }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
   });
+
+  // Surface auth errors that come back in the URL instead of failing silently.
+  (function(){
+    var raw = (location.hash || "").replace(/^#/, "") + "&" + (location.search || "").replace(/^\?/, "");
+    var p = new URLSearchParams(raw);
+    var err = p.get("error_description") || p.get("error");
+    if (err) {
+      var m = document.getElementById("authMsg");
+      m.setAttribute("data-tone", "error");
+      m.textContent = "Anmeldung fehlgeschlagen: " + decodeURIComponent(err).replace(/\+/g, " ");
+    }
+  })();
   sb.auth.onAuthStateChange(function(evt, session){
     if (session && session.user) {
       var isNew = !currentUser;

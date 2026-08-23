@@ -195,6 +195,7 @@
   .field input[type="date"],
   .field input[type="number"],
   .field input[type="email"],
+  .field input[type="password"],
   .field textarea {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -435,14 +436,19 @@
 <div class="auth-screen" id="authScreen" style="display:none;">
   <div class="card auth-card">
     <h1 class="brand-mark">🧭 Tagesordnung</h1>
-    <p class="hint">Melde dich mit deiner E-Mail an. Du bekommst einen Anmelde-Link zugeschickt — kein Passwort nötig.</p>
+    <p class="hint">Einmal anmelden — danach bleibst du auf diesem Gerät angemeldet.</p>
     <form id="loginForm">
       <div class="field">
         <label for="loginEmail">E-Mail</label>
-        <input type="email" id="loginEmail" required placeholder="du@beispiel.de" autocomplete="email" />
+        <input type="email" id="loginEmail" required placeholder="du@beispiel.de" autocomplete="username" />
       </div>
-      <button type="submit" class="btn btn-primary" id="loginSubmit">Magic Link senden</button>
+      <div class="field" id="loginPwWrap" style="margin-top:12px;">
+        <label for="loginPassword">Passwort</label>
+        <input type="password" id="loginPassword" placeholder="Dein Passwort" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-primary" id="loginSubmit">Anmelden</button>
     </form>
+    <button type="button" class="btn btn-ghost" id="loginSwitch" style="width:100%;justify-content:center;margin-top:10px;">Kein Passwort? Magic Link anfordern</button>
     <p id="loginStatus"></p>
   </div>
 </div>
@@ -541,6 +547,11 @@
       <input type="number" id="capacityInput" min="0.5" step="0.25" />
       <span>Stunden pro Tag</span>
     </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="newPassword">Passwort setzen / ändern</label>
+      <input type="password" id="newPassword" autocomplete="new-password" placeholder="Mind. 6 Zeichen — dann nie wieder Magic Link" />
+    </div>
+    <p id="settingsMsg" class="hint" style="margin:8px 0 0;min-height:1em;"></p>
     <div class="roadmap-note">🔭 Als Nächstes geplant: Sync mit deinem iCloud-Kalender und Benachrichtigungen für dringende To-Dos.</div>
     <div class="account-row">
       <span class="hint" id="accountEmail"></span>
@@ -798,7 +809,20 @@
       showSetup("Diese Kopie ist noch nicht mit einer Datenbank verbunden. Trag SUPABASE_URL und SUPABASE_ANON_KEY oben im <script>-Bereich der Datei ein.");
       return;
     }
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // implicit flow: the magic link carries the session in the URL hash, so it
+    // works in whichever browser the mail is opened in. (The PKCE default only
+    // works in the exact context that requested the link.)
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
+    });
+    (function(){
+      var raw = (location.hash || "").replace(/^#/, "") + "&" + (location.search || "").replace(/^\?/, "");
+      var err = new URLSearchParams(raw).get("error_description") || new URLSearchParams(raw).get("error");
+      if (err) {
+        document.getElementById("loginStatus").textContent =
+          "Anmeldung fehlgeschlagen: " + decodeURIComponent(err).replace(/\+/g, " ");
+      }
+    })();
     supabaseClient.auth.onAuthStateChange(function(event, session){
       if (session && session.user) {
         currentUser = session.user;
@@ -813,26 +837,48 @@
     });
   }
 
+  var loginMode = "password";
+  function setLoginMode(m){
+    loginMode = m;
+    document.getElementById("loginPwWrap").style.display = m === "password" ? "flex" : "none";
+    document.getElementById("loginSubmit").textContent = m === "password" ? "Anmelden" : "Magic Link senden";
+    document.getElementById("loginSwitch").textContent = m === "password"
+      ? "Kein Passwort? Magic Link anfordern"
+      : "Ich habe ein Passwort — damit anmelden";
+  }
+  document.getElementById("loginSwitch").addEventListener("click", function(){
+    setLoginMode(loginMode === "password" ? "magic" : "password");
+    document.getElementById("loginStatus").textContent = "";
+  });
+
   document.getElementById("loginForm").addEventListener("submit", function(e){
     e.preventDefault();
     var email = document.getElementById("loginEmail").value.trim();
+    var pw = document.getElementById("loginPassword").value;
     if (!email) return;
     var btn = document.getElementById("loginSubmit");
     var statusEl = document.getElementById("loginStatus");
-    btn.disabled = true; btn.textContent = "Sende Link…";
-    statusEl.textContent = "";
-    supabaseClient.auth.signInWithOtp({
-      email: email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname }
-    }).then(function(res){
-      if (res.error) throw res.error;
-      statusEl.textContent = "Link gesendet — schau in dein Postfach (" + email + ").";
-    }).catch(function(err){
+    var label = btn.textContent;
+    btn.disabled = true; btn.textContent = "Moment…"; statusEl.textContent = "";
+    var p;
+    if (loginMode === "password") {
+      if (!pw) { btn.disabled = false; btn.textContent = label; statusEl.textContent = "Bitte Passwort eingeben."; return; }
+      p = supabaseClient.auth.signInWithPassword({ email: email, password: pw })
+            .then(function(res){ if (res.error) throw res.error; statusEl.textContent = ""; });
+    } else {
+      p = supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+      }).then(function(res){
+        if (res.error) throw res.error;
+        statusEl.textContent = "Link gesendet — schau in dein Postfach, auch im Spam (" + email + ").";
+      });
+    }
+    p.catch(function(err){
       statusEl.textContent = "Fehler: " + (err && err.message ? err.message : "Bitte erneut versuchen.");
-    }).then(function(){
-      btn.disabled = false; btn.textContent = "Magic Link senden";
-    });
+    }).then(function(){ btn.disabled = false; btn.textContent = label; });
   });
+  setLoginMode("password");
 
   document.getElementById("signOutBtn").addEventListener("click", function(){
     document.getElementById("settingsBackdrop").style.display = "none";
@@ -1096,10 +1142,24 @@
   backdrop.addEventListener("click", function(e){ if (e.target === backdrop) backdrop.style.display = "none"; });
   document.getElementById("settingsSave").addEventListener("click", function(){
     var h = parseFloat(document.getElementById("capacityInput").value);
-    if (h && h > 0) {
+    var pw = document.getElementById("newPassword").value;
+    var msg = document.getElementById("settingsMsg");
+    if (h && h > 0 && Math.round(h*60) !== state.settings.dailyCapacityMinutes) {
       state.settings.dailyCapacityMinutes = Math.round(h*60);
       render();
       persist(function(){ return dbUpsertSettings(state.settings); });
+    }
+    if (pw) {
+      if (pw.length < 6) { msg.textContent = "Passwort braucht mindestens 6 Zeichen."; return; }
+      msg.textContent = "Setze Passwort…";
+      supabaseClient.auth.updateUser({ password: pw }).then(function(res){
+        if (res.error) throw res.error;
+        msg.textContent = "Passwort gesetzt. Ab jetzt kein Magic Link mehr nötig.";
+        document.getElementById("newPassword").value = "";
+      }).catch(function(err){
+        msg.textContent = "Fehler: " + (err && err.message ? err.message : "unbekannt");
+      });
+      return;
     }
     backdrop.style.display = "none";
   });
