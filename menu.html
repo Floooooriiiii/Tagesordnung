@@ -629,7 +629,8 @@
   function isFreeDay(date, cfg){
     return cfg.freeWeekday !== null && cfg.freeWeekday !== undefined && date.getDay() === cfg.freeWeekday;
   }
-  function buildPlan(list, cfg, now){
+  function buildPlan(list, cfg, now, overrides){
+    overrides = overrides || {};
     var today = startOfToday(), HORIZON = 21;
     var days = [];
     for (var i = 0; i < HORIZON; i++) {
@@ -659,8 +660,10 @@
       for (var di = earliest; di < HORIZON && remaining > 0; di++) {
         var day = days[di];
         if (day.free) continue;
-        var order = day.blocks.filter(function(b){ return b.accepts.indexOf(t.taskType) !== -1; })
+        var freeAll = !!overrides[t.id];
+        var order = day.blocks.filter(function(b){ return freeAll || b.accepts.indexOf(t.taskType) !== -1; })
           .sort(function(x, y){
+            if (freeAll) return 0;
             var ox = x.order && x.order[t.taskType], oy = y.order && y.order[t.taskType];
             return (ox == null ? 99 : ox) - (oy == null ? 99 : oy);
           });
@@ -680,8 +683,22 @@
         var dueIdx = Math.round((new Date(t.dueDate + "T00:00:00") - today) / 86400000);
         if (last > dueIdx) missedBy = last - dueIdx;
       }
-      info[t.id] = { first: first, last: last, missedBy: missedBy, unplaced: remaining > 0 };
+      info[t.id] = { first: first, last: last, missedBy: missedBy, unplaced: remaining > 0,
+                     urgent: !!overrides[t.id] };
     });
+    return info;
+  }
+
+  // Mehrfach planen, damit gefaehrdete Aufgaben den Fokusblock nutzen duerfen.
+  function planAdaptive(list, cfg, now){
+    var overrides = {};
+    var info = buildPlan(list, cfg, now, overrides);
+    for (var pass = 0; pass < 3; pass++) {
+      var neu = Object.keys(info).filter(function(id){ return info[id].missedBy > 0 && !overrides[id]; });
+      if (!neu.length) break;
+      neu.forEach(function(id){ overrides[id] = true; });
+      info = buildPlan(list, cfg, now, overrides);
+    }
     return info;
   }
 
@@ -703,6 +720,7 @@
     if (followUpDue(t)) tag += '<span class="tag tag-critical">nachfassen</span>';
     var pi = planInfo[t.id];
     if (pi && pi.missedBy > 0) tag += '<span class="tag tag-critical">Frist in Gefahr</span>';
+    else if (pi && pi.urgent) tag += '<span class="tag tag-warning">dringend</span>';
     var kids = childrenOf(t.id);
     var mins = kids.length ? kids.reduce(function(s,k){ return s + k.estimatedMinutes; }, 0) : t.estimatedMinutes;
 
@@ -755,7 +773,7 @@
 
     // Nur Blattaufgaben einplanen — sonst belegt eine Aufgabe zusammen mit
     // ihren Teilschritten doppelt Kapazitaet.
-    planInfo = buildPlan(state.todos.filter(function(t){
+    planInfo = planAdaptive(state.todos.filter(function(t){
       return isActive(t) && childrenOf(t.id).length === 0;
     }), cfg, now);
 

@@ -566,6 +566,10 @@
     font-size: 12px; line-height: 1.5; display: grid; gap: 3px;
   }
   .miss-note b { font-size: 12.5px; }
+  .urgent-mark {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 999px; background: var(--critical-soft); color: var(--critical-ink);
+  }
   .miss-note .hint-line { color: var(--critical-ink); opacity: 0.8; margin-top: 3px; }
 
   .scheduled-chip {
@@ -1369,7 +1373,8 @@
     });
   }
 
-  function buildDayPlan(sortedOpen, settings){
+  function buildDayPlan(sortedOpen, settings, overrides){
+    overrides = overrides || {};
     var today = startOfToday();
     var days = [];
     for (var i = 0; i < HORIZON_DAYS; i++) {
@@ -1392,9 +1397,13 @@
         if (day.free) continue;
         // Reihenfolge je Art: Fokusarbeit zuerst in Block 1, Nebenbei-Arbeit
         // zuerst in den Kleinkram-Slot — so bleibt Block 2 fuer Fokus frei.
+        // Dringlichkeitsfreigabe: was sonst seine Frist reisst, darf auch in
+        // den Fokusblock am Vormittag.
+        var free = !!overrides[todo.id];
         var order = day.blocks.map(function(b, i){ return { b: b, i: i }; })
-          .filter(function(x){ return x.b.accepts.indexOf(todo.taskType) !== -1; })
+          .filter(function(x){ return free || x.b.accepts.indexOf(todo.taskType) !== -1; })
           .sort(function(x, y){
+            if (free) return x.i - y.i;
             var ox = x.b.order && x.b.order[todo.taskType], oy = y.b.order && y.b.order[todo.taskType];
             return (ox == null ? 99 : ox) - (oy == null ? 99 : oy);
           });
@@ -1415,11 +1424,25 @@
         if (lastDay > dueIdx) missed.push({ todo: todo, days: lastDay - dueIdx });
       }
     });
-    return { days: days, later: later, missed: missed };
+    return { days: days, later: later, missed: missed, overrides: overrides };
+  }
+
+  // Mehrfach planen: Was reisst, bekommt den Fokusblock frei und wird neu gelegt.
+  function planAdaptive(sortedOpen, settings){
+    var ordered = sortForPlanning(sortedOpen, settings, new Date());
+    var overrides = {};
+    var plan = buildDayPlan(ordered, settings, overrides);
+    for (var pass = 0; pass < 3; pass++) {
+      var neu = plan.missed.filter(function(m){ return !overrides[m.todo.id]; });
+      if (!neu.length) break;
+      neu.forEach(function(m){ overrides[m.todo.id] = true; });
+      plan = buildDayPlan(ordered, settings, overrides);
+    }
+    return plan;
   }
 
   function renderDayPlan(sortedOpen, settings){
-    var plan = buildDayPlan(sortForPlanning(sortedOpen, settings, new Date()), settings);
+    var plan = planAdaptive(sortedOpen, settings);
     var perDay = settings.deepBlockMinutes + settings.shallowBlockMinutes + settings.adminSlotMinutes;
     document.getElementById("capacityLabel").textContent = fmtMinutes(perDay) + "/Arbeitstag";
     var host = document.getElementById("dayPlan");
@@ -1455,8 +1478,9 @@
           html += '<div class="block-free">frei</div>';
         } else {
           b.items.forEach(function(it){
+            var urgent = plan.overrides[it.todo.id] ? ' <span class="urgent-mark" title="Wegen Termindruck in den Fokusblock gelegt">dringend</span>' : '';
             html += '<div class="day-item">' +
-              '<span class="t"><span class="area-dot" data-area="' + escapeHtml(it.todo.area) + '"></span> ' + escapeHtml(it.todo.title) + '</span>' +
+              '<span class="t"><span class="area-dot" data-area="' + escapeHtml(it.todo.area) + '"></span> ' + escapeHtml(it.todo.title) + urgent + '</span>' +
               '<span class="m mono">' + fmtMinutes(it.minutes) + '</span></div>';
           });
         }
@@ -1466,7 +1490,7 @@
     });
 
     if (plan.missed.length > 0) {
-      html += '<div class="miss-note"><b>Frist in Gefahr</b>' +
+      html += '<div class="miss-note"><b>Frist in Gefahr — auch mit Fokusblock nicht zu halten</b>' +
         plan.missed.map(function(m){
           return '<span>' + escapeHtml(m.todo.title) + ' — rechnerisch ' + m.days + ' Tag(e) zu spät fertig</span>';
         }).join("") +
