@@ -629,6 +629,7 @@
       <div class="sync-chip" id="syncChip" data-state="pending" role="status" aria-live="polite">
         <span class="sync-dot"></span><span id="syncLabel">Lädt…</span>
       </div>
+      <button class="icon-btn" id="replanBtn" aria-label="Kalender neu planen" title="Kalender neu planen">🔄</button>
       <button class="icon-btn" id="settingsBtn" aria-label="Einstellungen" title="Einstellungen">⚙️</button>
     </div>
   </div>
@@ -1132,7 +1133,9 @@
       shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULT_SETTINGS.shallowBlockMinutes,
       adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULT_SETTINGS.adminSlotMinutes,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULT_SETTINGS.freeWeekday,
-      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULT_SETTINGS.followUpAfterDays
+      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULT_SETTINGS.followUpAfterDays,
+      replanRequestedAt:   r.replan_requested_at || null,
+      replanDoneAt:        r.replan_done_at || null
     };
   }
 
@@ -1933,6 +1936,31 @@
     applyView();
   }
 
+  // ---------- Kalender neu planen ----------
+  // Die Seite laeuft im Browser und kann kein Programm starten. Sie hinterlegt
+  // deshalb einen Zeitstempel; der Planer auf dem Mac holt ihn ab.
+  function requestReplan(btn){
+    if (!currentUser) return;
+    var vorher = btn.textContent;
+    btn.disabled = true; btn.textContent = "⏳";
+    supabaseClient.from("settings")
+      .update({ replan_requested_at: new Date().toISOString() })
+      .eq("user_id", currentUser.id)
+      .then(function(res){
+        if (res.error) throw res.error;
+        btn.textContent = "✓";
+        setTimeout(function(){ btn.textContent = vorher; btn.disabled = false; }, 2500);
+      })
+      .catch(function(err){
+        console.error(err);
+        btn.textContent = "✕";
+        setTimeout(function(){ btn.textContent = vorher; btn.disabled = false; }, 2500);
+      });
+  }
+  document.getElementById("replanBtn").addEventListener("click", function(){
+    requestReplan(this);
+  });
+
   // ---------- Ansichtswechsel ----------
   function applyView(){
     document.getElementById("viewTasks").style.display = activeView === "tasks" ? "block" : "none";
@@ -2165,6 +2193,15 @@
     document.getElementById("tabList").setAttribute("aria-pressed","false");
     document.querySelector(".dayplan-panel").classList.add("active");
     document.querySelector(".list-panel").classList.remove("active");
+  });
+
+  // Sicherheitsnetz: regelmaessig nachladen. Die Live-Verbindung verpasst
+  // gelegentlich Aenderungen, etwa wenn das Fenster lange geschlossen war.
+  setInterval(function(){
+    if (currentUser && document.visibilityState !== "hidden") loadRemoteData();
+  }, 60000);
+  document.addEventListener("visibilitychange", function(){
+    if (currentUser && document.visibilityState === "visible") loadRemoteData();
   });
 
   applyView();

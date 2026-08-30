@@ -368,6 +368,7 @@
   <div class="statusbar" id="statusbar" data-state="synced">
     <span><span class="dot"></span><span id="statusText">Synchronisiert</span></span>
     <span>
+      <button class="link-btn" id="replanBtn" type="button" title="Kalender neu planen">🔄 Neu planen</button>
       <button class="link-btn" id="openFull" type="button">Große Ansicht</button>
       <button class="link-btn" id="openSettings" type="button">Einstellungen</button>
     </span>
@@ -533,7 +534,9 @@
       shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULTS.shallowBlockMinutes,
       adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULTS.adminSlotMinutes,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULTS.freeWeekday,
-      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULTS.followUpAfterDays
+      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULTS.followUpAfterDays,
+      replanRequestedAt:   r.replan_requested_at || null,
+      replanDoneAt:        r.replan_done_at || null
     };
   }
 
@@ -928,6 +931,26 @@
     if (e.target.closest(".link-btn")) return;
     if (this.getAttribute("data-state") === "error" && currentUser) loadData();
   });
+  // Neu planen anfordern: die Seite kann kein Programm starten, sie hinterlegt
+  // einen Zeitstempel, den der Planer auf dem Mac abholt.
+  document.getElementById("replanBtn").addEventListener("click", function(){
+    if (!currentUser) return;
+    var btn = this, vorher = btn.textContent;
+    btn.disabled = true; btn.textContent = "⏳ …";
+    sb.from("settings").update({ replan_requested_at: new Date().toISOString() })
+      .eq("user_id", currentUser.id)
+      .then(function(r){
+        if (r.error) throw r.error;
+        btn.textContent = "✓ angefordert";
+        setTimeout(function(){ btn.textContent = vorher; btn.disabled = false; }, 2500);
+      })
+      .catch(function(e){
+        console.error(e);
+        btn.textContent = "✕ Fehler";
+        setTimeout(function(){ btn.textContent = vorher; btn.disabled = false; }, 2500);
+      });
+  });
+
   document.getElementById("openFull").addEventListener("click", function(){
     window.open(location.href.replace(/menu\.html.*$/, "index.html"), "_blank");
   });
@@ -1045,6 +1068,15 @@
       m.textContent = "Anmeldung fehlgeschlagen: " + decodeURIComponent(err).replace(/\+/g, " ");
     }
   })();
+  // Sicherheitsnetz: regelmaessig nachladen. Die Live-Verbindung verpasst
+  // gelegentlich Aenderungen, etwa wenn das Fenster lange geschlossen war.
+  setInterval(function(){
+    if (currentUser && document.visibilityState !== "hidden") loadData();
+  }, 60000);
+  document.addEventListener("visibilitychange", function(){
+    if (currentUser && document.visibilityState === "visible") loadData();
+  });
+
   sb.auth.onAuthStateChange(function(evt, session){
     if (session && session.user) {
       var isNew = !currentUser;
