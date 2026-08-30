@@ -422,6 +422,170 @@
     .row-2 { grid-template-columns: 1fr; }
     .brand-mark { font-size: 25px; }
   }
+
+  /* ==================================================================
+     v2: Bereiche, Blöcke, Pipeline, Unteraufgaben
+     ================================================================== */
+  :root {
+    --area-bewerbung: #2E6F5C;
+    --area-immobilien: #3B6E8F;
+    --area-projekte:   #6B4E9E;
+    --area-privat:     #B5651D;
+    --area-gesundheit: #4E7A38;
+    --area-sonstiges:  #7A8274;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --area-bewerbung: #56B296;
+      --area-immobilien: #6FA8CC;
+      --area-projekte:   #A88BD8;
+      --area-privat:     #DDA05C;
+      --area-gesundheit: #8FBE6E;
+      --area-sonstiges:  #99A394;
+    }
+  }
+  :root[data-theme="dark"] {
+    --area-bewerbung: #56B296;
+    --area-immobilien: #6FA8CC;
+    --area-projekte:   #A88BD8;
+    --area-privat:     #DDA05C;
+    --area-gesundheit: #8FBE6E;
+    --area-sonstiges:  #99A394;
+  }
+
+  .area-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: none;
+    display: inline-block; background: var(--area-sonstiges);
+  }
+  [data-area="Bewerbung"]   .area-dot, .area-dot[data-area="Bewerbung"]   { background: var(--area-bewerbung); }
+  [data-area="Immobilien"]  .area-dot, .area-dot[data-area="Immobilien"]  { background: var(--area-immobilien); }
+  [data-area="Projekte"]    .area-dot, .area-dot[data-area="Projekte"]    { background: var(--area-projekte); }
+  [data-area="Privat"]      .area-dot, .area-dot[data-area="Privat"]      { background: var(--area-privat); }
+  [data-area="Gesundheit"]  .area-dot, .area-dot[data-area="Gesundheit"]  { background: var(--area-gesundheit); }
+
+  .todo-card[data-area="Bewerbung"]::before  { background: var(--area-bewerbung); }
+  .todo-card[data-area="Immobilien"]::before { background: var(--area-immobilien); }
+  .todo-card[data-area="Projekte"]::before   { background: var(--area-projekte); }
+  .todo-card[data-area="Privat"]::before     { background: var(--area-privat); }
+  .todo-card[data-area="Gesundheit"]::before { background: var(--area-gesundheit); }
+  .todo-card[data-band="overdue"]::before,
+  .todo-card[data-band="tight"]::before      { background: var(--critical); }
+  .todo-card[data-status="done"]::before     { background: var(--done); }
+  .todo-card[data-status="waiting"]::before  { background: var(--ink-faint); }
+
+  /* Filterleiste */
+  .filterbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .chip-filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--border-soft); color: var(--ink-muted);
+    box-shadow: var(--shadow-1);
+    transition: transform 0.15s cubic-bezier(.2,.8,.3,1.3), background 0.15s ease, color 0.15s ease;
+  }
+  .chip-filter:hover { transform: translateY(-1px); color: var(--ink); }
+  .chip-filter:active { transform: translateY(0) scale(0.97); }
+  .chip-filter[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: var(--accent); }
+
+  /* Unteraufgaben */
+  .subtask-wrap { margin-top: 9px; padding-left: 4px; border-left: 2px solid var(--border-soft); display: grid; gap: 5px; }
+  .subtask-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    padding: 3px 0 3px 10px; color: var(--ink-muted);
+  }
+  .subtask-row .st-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .subtask-row[data-done="true"] .st-title { text-decoration: line-through; color: var(--ink-faint); }
+  .st-box {
+    width: 15px; height: 15px; border-radius: 4px; flex: none;
+    border: 1.5px solid var(--border); background: var(--surface-2);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px; padding: 0;
+    color: var(--accent-ink);
+  }
+  .st-box[data-done="true"] { background: var(--accent); border-color: var(--accent); }
+  .progress-mini { font-size: 11px; color: var(--ink-faint); }
+
+  /* Warteliste + Später */
+  .side-section { margin-top: 18px; }
+  .side-section summary {
+    cursor: pointer; font-size: 13.5px; color: var(--ink-muted); font-weight: 600;
+    list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  .side-section summary::-webkit-details-marker { display: none; }
+  .side-section summary::before { content: "▸"; font-size: 11px; transition: transform 0.15s ease; }
+  .side-section[open] summary::before { transform: rotate(90deg); }
+  .side-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Blockbasierter Tagesplan */
+  .block-row { padding: 10px 12px; margin-bottom: 8px; }
+  .block-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    font-size: 12.5px; margin-bottom: 6px;
+  }
+  .block-name { font-weight: 700; color: var(--ink); }
+  .block-time { color: var(--ink-faint); font-size: 11.5px; }
+  .block-free { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+  .day-row[data-free="true"] { background: var(--surface-2); border-style: dashed; }
+  .rest-day { text-align: center; padding: 14px 10px; color: var(--ink-muted); font-size: 13px; }
+
+  /* Pipeline */
+  .pipe-board { display: grid; gap: 12px; }
+  .pipe-stage { padding: 12px 14px; }
+  .pipe-stage-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px;
+  }
+  .pipe-stage-head h3 { font-size: 14.5px; }
+  .pipe-stage-head .count { font-size: 11.5px; color: var(--ink-faint); }
+  .pipe-cards { display: grid; gap: 8px; }
+  .pipe-card {
+    border: 1px solid var(--border-soft); border-radius: var(--radius-s);
+    background: var(--surface-2); padding: 10px 12px;
+  }
+  .pipe-company { font-weight: 700; font-size: 14px; }
+  .pipe-role { font-size: 12.5px; color: var(--ink-muted); margin-top: 1px; }
+  .pipe-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-top: 7px; font-size: 11.5px; color: var(--ink-faint); }
+  .pipe-actions { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .pipe-move {
+    font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-muted);
+    transition: transform 0.15s cubic-bezier(.2,.8,.3,1.3), background 0.15s ease;
+  }
+  .pipe-move:hover { transform: translateY(-1px); background: var(--accent-soft); color: var(--accent-soft-ink); }
+  .pipe-move:active { transform: translateY(0) scale(0.97); }
+  .track-badge {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--ink-muted);
+  }
+
+  /* Ansichtsumschalter oben */
+  .viewbar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .viewbar button {
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border-soft);
+    background: var(--surface); color: var(--ink-muted); font-size: 13.5px; font-weight: 600;
+    box-shadow: var(--shadow-1);
+    transition: transform 0.15s cubic-bezier(.2,.8,.3,1.3), background 0.15s ease, color 0.15s ease;
+  }
+  .viewbar button:hover { transform: translateY(-1px); color: var(--ink); }
+  .viewbar button:active { transform: translateY(0) scale(0.97); }
+  .viewbar button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: var(--shadow-2); }
+
+  .scheduled-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-soft-ink);
+  }
+  .deep-chip {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-faint);
+  }
+
+  .field select {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-s);
+    padding: 9px 11px; font-size: 14.5px; color: var(--ink); width: 100%;
+  }
+  .field-grid-4 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; align-items: end; }
+  @media (max-width: 900px) { .field-grid-4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .field-grid-4 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -454,7 +618,6 @@
 </div>
 
 <div class="app-shell" id="appRoot" style="display:none;">
-
   <div class="topbar">
     <div class="brand-block">
       <h1 class="brand-mark">🧭 Tagesordnung</h1>
@@ -468,18 +631,37 @@
     </div>
   </div>
 
+  <div class="viewbar" role="group" aria-label="Ansicht">
+    <button type="button" data-view="tasks" aria-pressed="true">Aufgaben</button>
+    <button type="button" data-view="pipeline" aria-pressed="false">Bewerbungen</button>
+  </div>
+
+  <!-- ============================ AUFGABEN ============================ -->
+  <div id="viewTasks">
+
   <section class="card quickadd">
-    <h2>Neues To-Do</h2>
-    <div class="hint">Titel, Fälligkeit, Aufwand und Priorität — den Rest übernimmt die Sortierung.</div>
+    <h2>Neue Aufgabe</h2>
+    <div class="hint">Fälligkeit darf leer bleiben — dann landet die Aufgabe unten statt eine erfundene Frist zu bekommen.</div>
     <form id="addForm">
-      <div class="field-grid">
+      <div class="field-grid-4">
         <div class="field">
           <label for="f-title">Titel</label>
-          <input type="text" id="f-title" name="title" placeholder="z. B. Steuererklärung vorbereiten" required maxlength="140" />
+          <input type="text" id="f-title" name="title" placeholder="z. B. Anschreiben Bosch schreiben" required maxlength="140" />
         </div>
         <div class="field">
-          <label for="f-due">Fällig am</label>
-          <input type="date" id="f-due" name="due" required />
+          <label for="f-area">Bereich</label>
+          <select id="f-area">
+            <option value="Bewerbung">Bewerbung</option>
+            <option value="Immobilien">Immobilien</option>
+            <option value="Projekte">Projekte</option>
+            <option value="Privat">Privat</option>
+            <option value="Gesundheit">Gesundheit</option>
+            <option value="Sonstiges" selected>Sonstiges</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-due">Fällig am <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
+          <input type="date" id="f-due" name="due" />
         </div>
         <div class="field">
           <label for="f-hours">Aufwand (Std.)</label>
@@ -497,16 +679,48 @@
           </div>
         </div>
         <div class="field">
-          <label for="f-notes">Notiz (optional)</label>
-          <input type="text" id="f-notes" name="notes" placeholder="Kontext, Link, nächster Schritt…" maxlength="200" />
+          <label>Art der Arbeit</label>
+          <div class="segmented" id="typeSegment" role="group" aria-label="Art der Arbeit">
+            <button type="button" data-value="deep">Fokus (Block 1)</button>
+            <button type="button" data-value="shallow" aria-pressed="true">Nebenbei</button>
+          </div>
         </div>
       </div>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--ink-muted);font-weight:600;">Mehr Optionen</summary>
+        <div class="field-grid-4" style="margin-top:10px;">
+          <div class="field">
+            <label for="f-notes">Notiz</label>
+            <input type="text" id="f-notes" name="notes" placeholder="Kontext, Link, nächster Schritt…" maxlength="200" />
+          </div>
+          <div class="field">
+            <label for="f-defer">Frühestens ab</label>
+            <input type="date" id="f-defer" />
+          </div>
+          <div class="field">
+            <label for="f-recur">Wiederholung</label>
+            <select id="f-recur">
+              <option value="">Keine</option>
+              <option value="daily">Täglich</option>
+              <option value="weekdays">Mo–Fr</option>
+              <option value="weekly">Wöchentlich</option>
+              <option value="monthly">Monatlich</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-parent">Gehört zu</label>
+            <select id="f-parent"><option value="">— eigenständig —</option></select>
+          </div>
+        </div>
+      </details>
       <div class="quickadd-bottom">
         <span></span>
         <button type="submit" class="btn btn-primary">＋ Hinzufügen</button>
       </div>
     </form>
   </section>
+
+  <div class="filterbar" id="areaFilter" role="group" aria-label="Nach Bereich filtern"></div>
 
   <div class="tabbar">
     <button type="button" id="tabList" aria-pressed="true">Liste</button>
@@ -520,6 +734,16 @@
         <span class="count" id="openCount">0 offen</span>
       </div>
       <div class="todo-list" id="todoList"></div>
+
+      <details class="side-section" id="waitingSection">
+        <summary>Wartet auf andere (<span id="waitingCount">0</span>)</summary>
+        <div class="side-list" id="waitingList"></div>
+      </details>
+
+      <details class="side-section" id="deferredSection">
+        <summary>Später (<span id="deferredCount">0</span>)</summary>
+        <div class="side-list" id="deferredList"></div>
+      </details>
 
       <details class="completed-section" id="completedSection">
         <summary>Erledigt (<span id="completedCount">0</span>)</summary>
@@ -535,24 +759,98 @@
       <div id="dayPlan"></div>
     </aside>
   </div>
+  </div>
+
+  <!-- ============================ BEWERBUNGEN ============================ -->
+  <div id="viewPipeline" style="display:none;">
+    <section class="card quickadd">
+      <h2>Neue Bewerbung</h2>
+      <div class="hint">Eine Bewerbung ist kein To-Do, sondern ein Vorgang mit Stufen. Fortschritt zählt auch ohne Zusage.</div>
+      <form id="appForm">
+        <div class="field-grid-4">
+          <div class="field">
+            <label for="a-company">Firma</label>
+            <input type="text" id="a-company" required maxlength="120" placeholder="z. B. Bosch" />
+          </div>
+          <div class="field">
+            <label for="a-role">Stelle</label>
+            <input type="text" id="a-role" maxlength="140" placeholder="z. B. Trainee Transformation" />
+          </div>
+          <div class="field">
+            <label for="a-track">Strang</label>
+            <select id="a-track">
+              <option value="Beratung">Beratung</option>
+              <option value="Praktikum">Praktikum</option>
+              <option value="Marken">Marken</option>
+              <option value="Sonstiges" selected>Sonstiges</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="a-deadline">Frist (optional)</label>
+            <input type="date" id="a-deadline" />
+          </div>
+        </div>
+        <div class="row-2" style="margin-top:12px;">
+          <div class="field">
+            <label for="a-url">Link zur Stelle</label>
+            <input type="text" id="a-url" maxlength="500" placeholder="https://…" />
+          </div>
+          <div class="field">
+            <label for="a-next">Nächster Schritt</label>
+            <input type="text" id="a-next" maxlength="200" placeholder="z. B. Anschreiben entwerfen" />
+          </div>
+        </div>
+        <div class="quickadd-bottom">
+          <span></span>
+          <button type="submit" class="btn btn-primary">＋ Aufnehmen</button>
+        </div>
+      </form>
+    </section>
+    <div class="pipe-board" id="pipeBoard"></div>
+  </div>
 
   <footer class="foot">Als App nutzen: Safari-Teilen-Menü → „Zum Home-Bildschirm" (iPhone) bzw. „Zum Dock hinzufügen" (Mac).</footer>
+
 </div>
 
 <div class="settings-backdrop" id="settingsBackdrop" style="display:none;">
   <div class="card settings-panel">
     <h2>Einstellungen</h2>
-    <div class="hint">Wie viel Zeit willst du realistisch pro Tag für To-Dos einplanen? Das steuert sowohl die Dringlichkeits-Berechnung als auch den Tagesplan.</div>
-    <div class="settings-row">
-      <input type="number" id="capacityInput" min="0.5" step="0.25" />
-      <span>Stunden pro Tag</span>
+    <div class="hint">Deine Tagesstruktur. Der Fokusblock liegt vormittags vor dem Gym und ist der einzige Ort für Fokusarbeit.</div>
+    <div class="field">
+      <label for="deepInput">Block 1 · Fokus (Std.)</label>
+      <input type="number" id="deepInput" min="0" step="0.25" />
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="shallowInput">Block 2 (Std.)</label>
+      <input type="number" id="shallowInput" min="0" step="0.25" />
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="adminInput">Kleinkram-Slot (Min.)</label>
+      <input type="number" id="adminInput" min="0" step="5" />
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="freeDayInput">Freier Tag</label>
+      <select id="freeDayInput">
+        <option value="0">Sonntag</option>
+        <option value="1">Montag</option>
+        <option value="2">Dienstag</option>
+        <option value="3">Mittwoch</option>
+        <option value="4">Donnerstag</option>
+        <option value="5">Freitag</option>
+        <option value="6">Samstag</option>
+        <option value="">Keiner</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="followUpInput">Nachfassen nach (Tagen)</label>
+      <input type="number" id="followUpInput" min="1" step="1" />
     </div>
     <div class="field" style="margin-top:14px;">
       <label for="newPassword">Passwort setzen / ändern</label>
-      <input type="password" id="newPassword" autocomplete="new-password" placeholder="Mind. 6 Zeichen — dann nie wieder Magic Link" />
+      <input type="password" id="newPassword" autocomplete="new-password" placeholder="Mind. 6 Zeichen" />
     </div>
     <p id="settingsMsg" class="hint" style="margin:8px 0 0;min-height:1em;"></p>
-    <div class="roadmap-note">🔭 Als Nächstes geplant: Sync mit deinem iCloud-Kalender und Benachrichtigungen für dringende To-Dos.</div>
     <div class="account-row">
       <span class="hint" id="accountEmail"></span>
       <button class="btn btn-ghost" id="signOutBtn" type="button">Abmelden</button>
@@ -568,27 +866,46 @@
 <script>
 (function(){
   "use strict";
-
-  // ======================================================================
-  // SETUP: trag hier deine Supabase-Projektdaten ein (Project Settings → API).
-  // Beides ist unkritisch/öffentlich (kein Passwort) — Zugriff wird über
-  // Row Level Security in der Datenbank geregelt, nicht über den anon key.
-  // ======================================================================
   var SUPABASE_URL = "https://noesfohqryxgxcmzwznm.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vZXNmb2hxcnl4Z3hjbXp3em5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0ODQ4NzYsImV4cCI6MjEwMzA2MDg3Nn0.iCgWxBKQVeCNkNCEw_adNVsx9fAqFSYg8DinwugCVQc";
-  // ======================================================================
 
+  // Die Gewichte sind bewusst weit gespreizt: bei linearen Gewichten gewinnt
+  // jede kurze Kleinigkeit mit naher Frist gegen jede wichtige grosse Aufgabe.
   var PRIORITY = {
     low:      { label: "Niedrig",  weight: 1 },
-    medium:   { label: "Mittel",   weight: 2 },
-    high:     { label: "Hoch",     weight: 4 },
-    critical: { label: "Kritisch", weight: 7 }
+    medium:   { label: "Mittel",   weight: 3 },
+    high:     { label: "Hoch",     weight: 9 },
+    critical: { label: "Kritisch", weight: 24 }
   };
-  var STATUS_LABEL = { open: "Offen", in_progress: "In Arbeit", done: "Erledigt" };
+  var DEEP_BONUS = 1.4;   // Fokusarbeit soll nicht von Nebenbei-Kram verdraengt werden
+  var STATUS_LABEL = { open: "Offen", in_progress: "In Arbeit", waiting: "Wartet", done: "Erledigt" };
+  var AREAS = ["Bewerbung","Immobilien","Projekte","Privat","Gesundheit","Sonstiges"];
   var DAY_NAMES = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  var RECUR_LABEL = { daily: "Täglich", weekdays: "Mo–Fr", weekly: "Wöchentlich", monthly: "Monatlich" };
+  var STAGES = [
+    { key: "recherchiert", label: "Recherchiert" },
+    { key: "unterlagen",   label: "Unterlagen in Arbeit" },
+    { key: "abgeschickt",  label: "Abgeschickt" },
+    { key: "nachgefasst",  label: "Nachgefasst" },
+    { key: "gespraech",    label: "Im Gespräch" },
+    { key: "angebot",      label: "Angebot" }
+  ];
+  var CLOSED_STAGES = [
+    { key: "absage",        label: "Absage" },
+    { key: "zurueckgezogen",label: "Zurückgezogen" }
+  ];
   var HORIZON_DAYS = 21;
 
-  var state = { todos: [], settings: { dailyCapacityMinutes: 180 } };
+  var DEFAULT_SETTINGS = {
+    dailyCapacityMinutes: 180,
+    deepBlockMinutes: 210,
+    shallowBlockMinutes: 150,
+    adminSlotMinutes: 30,
+    freeWeekday: 0,
+    followUpAfterDays: 14
+  };
+
+  var state = { todos: [], applications: [], settings: Object.assign({}, DEFAULT_SETTINGS) };
   var supabaseClient = null;
   var currentUser = null;
   var realtimeChannel = null;
@@ -596,6 +913,8 @@
   var confirmDeleteId = null;
   var whyOpenId = null;
   var activeTab = "list";
+  var activeView = "tasks";
+  var areaFilter = null;
 
   // ---------- utilities ----------
   function uid(){
@@ -604,6 +923,8 @@
   }
   function startOfToday(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
   function addDays(date, n){ var d = new Date(date); d.setDate(d.getDate() + n); return d; }
+  function toDateStr(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function todayStr(){ return toDateStr(new Date()); }
   function endOfDayFromStr(dateStr){
     var d = new Date(dateStr + "T00:00:00");
     d.setHours(23,59,0,0);
@@ -618,7 +939,11 @@
   function fmtDate(d){
     return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
+  function fmtShort(d){
+    return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+  }
   function fmtDue(dateStr){
+    if (!dateStr) return "Ohne Frist";
     var now = startOfToday();
     var due = new Date(dateStr + "T00:00:00");
     var diffDays = Math.round((due - now) / 86400000);
@@ -634,17 +959,38 @@
       return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
     });
   }
+  function safeUrl(u){
+    if (!u) return "";
+    return /^https?:\/\//i.test(u) ? u : "";
+  }
+
+  // ---------- Kapazität ----------
+  // Durchschnittliche Tageskapazität über die Woche: alle drei Blöcke,
+  // verteilt auf sechs Arbeitstage (der freie Tag zählt nicht mit).
+  function dailyCapacity(settings){
+    var perWorkday = settings.deepBlockMinutes + settings.shallowBlockMinutes + settings.adminSlotMinutes;
+    var workdays = settings.freeWeekday === null || settings.freeWeekday === undefined ? 7 : 6;
+    return Math.max(30, Math.round(perWorkday * workdays / 7));
+  }
+  function isFreeDay(date, settings){
+    return settings.freeWeekday !== null && settings.freeWeekday !== undefined
+      && date.getDay() === settings.freeWeekday;
+  }
 
   // ---------- scoring ----------
   function slackDays(todo, settings, now){
+    if (!todo.dueDate) return null;
+    var cap = dailyCapacity(settings);
     var due = endOfDayFromStr(todo.dueDate);
     var daysUntil = (due - now) / 86400000;
-    var durationDays = todo.estimatedMinutes / settings.dailyCapacityMinutes;
+    var durationDays = todo.estimatedMinutes / cap;
     return { daysUntil: daysUntil, slack: daysUntil - durationDays };
   }
   function scoreFor(todo, settings, now){
     var w = PRIORITY[todo.priority].weight;
     var s = slackDays(todo, settings, now);
+    if (todo.taskType === "deep") w *= DEEP_BONUS;
+    if (!s) return w;
     var score;
     if (s.slack <= 0) { score = 1000 + w * 10 - s.slack; }
     else { score = w / s.slack; }
@@ -652,10 +998,14 @@
     return score;
   }
   function bandFor(todo, settings, now){
+    if (todo.status === "waiting") return "waiting";
     var s = slackDays(todo, settings, now);
+    if (!s) return "someday";
     if (s.daysUntil < 0) return "overdue";
     if (s.slack <= 0) return "tight";
     if (s.slack <= 1) return "soon";
+    // Hohe Prioritaet mit naher Frist darf nicht als entspannt dargestellt werden.
+    if (s.daysUntil <= 2 && (todo.priority === "critical" || todo.priority === "high")) return "soon";
     return "plan";
   }
   function bandMeta(band, todo, settings, now){
@@ -664,22 +1014,125 @@
       case "overdue": return { pill: "pill-critical", label: "Überfällig seit " + Math.abs(Math.round(s.daysUntil)) + " Tagen" };
       case "tight":   return { pill: "pill-critical", label: "Kein Puffer mehr" };
       case "soon":    return { pill: "pill-warning",  label: "Knapp – wenig Puffer" };
+      case "waiting": return { pill: "pill-neutral",  label: "Wartet" };
+      case "someday": return { pill: "pill-neutral",  label: "Ohne Frist" };
       default:        return { pill: "pill-plan",     label: "Im Plan" };
     }
+  }
+
+  // ---------- Sichtbarkeit ----------
+  function isDeferred(todo){
+    return !!todo.deferUntil && todo.deferUntil > todayStr();
+  }
+  function followUpDue(todo){
+    return todo.status === "waiting" && !!todo.followUpDate && todo.followUpDate <= todayStr();
+  }
+  // Wartende Aufgaben verschwinden aus der Hauptliste — außer das Nachfassdatum
+  // ist erreicht, dann kommen sie von selbst zurück.
+  function isActive(todo){
+    if (todo.status === "done") return false;
+    if (isDeferred(todo)) return false;
+    if (todo.status === "waiting" && !followUpDue(todo)) return false;
+    return true;
+  }
+  function matchesFilter(todo){
+    return !areaFilter || todo.area === areaFilter;
+  }
+
+  // ---------- Wiederholung ----------
+  function nextRecurrence(dateStr, recurrence){
+    var base = dateStr ? new Date(dateStr + "T00:00:00") : startOfToday();
+    var d = new Date(base);
+    if (recurrence === "daily") d.setDate(d.getDate() + 1);
+    else if (recurrence === "weekly") d.setDate(d.getDate() + 7);
+    else if (recurrence === "monthly") d.setMonth(d.getMonth() + 1);
+    else if (recurrence === "weekdays") {
+      do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+    } else return null;
+    return toDateStr(d);
   }
 
   // ---------- Supabase mapping ----------
   function rowToTodo(r){
     return {
-      id: r.id, title: r.title, dueDate: r.due_date, estimatedMinutes: r.estimated_minutes,
-      priority: r.priority, notes: r.notes || "", status: r.status,
+      id: r.id, title: r.title, dueDate: r.due_date || null,
+      estimatedMinutes: r.estimated_minutes, priority: r.priority,
+      notes: r.notes || "", status: r.status,
+      area: r.area || "Sonstiges",
+      deferUntil: r.defer_until || null,
+      waitingOn: r.waiting_on || "",
+      followUpDate: r.follow_up_date || null,
+      parentId: r.parent_id || null,
+      recurrence: r.recurrence || null,
+      taskType: r.task_type || "shallow",
+      applicationId: r.application_id || null,
+      scheduledStart: r.scheduled_start || null,
+      scheduledEnd: r.scheduled_end || null,
+      calendarEventId: r.calendar_event_id || null,
       createdAt: r.created_at, completedAt: r.completed_at
     };
   }
   function todoToRow(t){
     return {
-      id: t.id, title: t.title, due_date: t.dueDate, estimated_minutes: t.estimatedMinutes,
-      priority: t.priority, notes: t.notes || "", status: t.status, completed_at: t.completedAt
+      id: t.id, title: t.title, due_date: t.dueDate || null,
+      estimated_minutes: t.estimatedMinutes, priority: t.priority,
+      notes: t.notes || "", status: t.status,
+      area: t.area || "Sonstiges",
+      defer_until: t.deferUntil || null,
+      waiting_on: t.waitingOn || "",
+      follow_up_date: t.followUpDate || null,
+      parent_id: t.parentId || null,
+      recurrence: t.recurrence || null,
+      task_type: t.taskType || "shallow",
+      application_id: t.applicationId || null,
+      completed_at: t.completedAt
+    };
+  }
+  var TODO_FIELD_MAP = {
+    title: "title", dueDate: "due_date", estimatedMinutes: "estimated_minutes",
+    priority: "priority", notes: "notes", status: "status", area: "area",
+    deferUntil: "defer_until", waitingOn: "waiting_on", followUpDate: "follow_up_date",
+    parentId: "parent_id", recurrence: "recurrence", taskType: "task_type",
+    applicationId: "application_id", completedAt: "completed_at"
+  };
+
+  function rowToApp(r){
+    return {
+      id: r.id, company: r.company, roleTitle: r.role_title || "",
+      track: r.track, stage: r.stage,
+      jobUrl: r.job_url || "", contactName: r.contact_name || "",
+      contactEmail: r.contact_email || "",
+      deadline: r.deadline || null, appliedOn: r.applied_on || null,
+      followUpDate: r.follow_up_date || null,
+      nextStep: r.next_step || "", notes: r.notes || "",
+      createdAt: r.created_at
+    };
+  }
+  function appToRow(a){
+    return {
+      id: a.id, company: a.company, role_title: a.roleTitle || "",
+      track: a.track, stage: a.stage, job_url: a.jobUrl || "",
+      contact_name: a.contactName || "", contact_email: a.contactEmail || "",
+      deadline: a.deadline || null, applied_on: a.appliedOn || null,
+      follow_up_date: a.followUpDate || null,
+      next_step: a.nextStep || "", notes: a.notes || ""
+    };
+  }
+  var APP_FIELD_MAP = {
+    company: "company", roleTitle: "role_title", track: "track", stage: "stage",
+    jobUrl: "job_url", contactName: "contact_name", contactEmail: "contact_email",
+    deadline: "deadline", appliedOn: "applied_on", followUpDate: "follow_up_date",
+    nextStep: "next_step", notes: "notes"
+  };
+
+  function rowToSettings(r){
+    return {
+      dailyCapacityMinutes: r.daily_capacity_minutes,
+      deepBlockMinutes:    r.deep_block_minutes    != null ? r.deep_block_minutes    : DEFAULT_SETTINGS.deepBlockMinutes,
+      shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULT_SETTINGS.shallowBlockMinutes,
+      adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULT_SETTINGS.adminSlotMinutes,
+      freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULT_SETTINGS.freeWeekday,
+      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULT_SETTINGS.followUpAfterDays
     };
   }
 
@@ -688,13 +1141,10 @@
     var chip = document.getElementById("syncChip");
     var label = document.getElementById("syncLabel");
     chip.setAttribute("data-state", status);
-    var text = {
-      pending: "Wird gespeichert…",
-      saving: "Speichert…",
-      synced: "Synchronisiert",
-      error: "Fehler – klicken zum Neuladen"
+    label.textContent = {
+      pending: "Wird gespeichert…", saving: "Speichert…",
+      synced: "Synchronisiert", error: "Fehler – klicken zum Neuladen"
     }[status] || "";
-    label.textContent = text;
   }
   function persist(op){
     setSyncStatus("saving");
@@ -712,13 +1162,9 @@
   }
   function dbUpdateTodo(id, patch){
     var row = {};
-    if ("title" in patch) row.title = patch.title;
-    if ("dueDate" in patch) row.due_date = patch.dueDate;
-    if ("estimatedMinutes" in patch) row.estimated_minutes = patch.estimatedMinutes;
-    if ("priority" in patch) row.priority = patch.priority;
-    if ("notes" in patch) row.notes = patch.notes;
-    if ("status" in patch) row.status = patch.status;
-    if ("completedAt" in patch) row.completed_at = patch.completedAt;
+    Object.keys(TODO_FIELD_MAP).forEach(function(k){
+      if (k in patch) row[TODO_FIELD_MAP[k]] = patch[k];
+    });
     return supabaseClient.from("todos").update(row).eq("id", id).then(function(res){
       if (res.error) throw res.error;
     });
@@ -728,9 +1174,35 @@
       if (res.error) throw res.error;
     });
   }
-  function dbUpsertSettings(settings){
+  function dbInsertApp(app){
+    return supabaseClient.from("applications").insert(appToRow(app)).then(function(res){
+      if (res.error) throw res.error;
+    });
+  }
+  function dbUpdateApp(id, patch){
+    var row = {};
+    Object.keys(APP_FIELD_MAP).forEach(function(k){
+      if (k in patch) row[APP_FIELD_MAP[k]] = patch[k];
+    });
+    row.updated_at = new Date().toISOString();
+    return supabaseClient.from("applications").update(row).eq("id", id).then(function(res){
+      if (res.error) throw res.error;
+    });
+  }
+  function dbDeleteApp(id){
+    return supabaseClient.from("applications").delete().eq("id", id).then(function(res){
+      if (res.error) throw res.error;
+    });
+  }
+  function dbUpsertSettings(s){
     return supabaseClient.from("settings").upsert({
-      user_id: currentUser.id, daily_capacity_minutes: settings.dailyCapacityMinutes
+      user_id: currentUser.id,
+      daily_capacity_minutes: s.dailyCapacityMinutes,
+      deep_block_minutes: s.deepBlockMinutes,
+      shallow_block_minutes: s.shallowBlockMinutes,
+      admin_slot_minutes: s.adminSlotMinutes,
+      free_weekday: s.freeWeekday,
+      follow_up_after_days: s.followUpAfterDays
     }).then(function(res){
       if (res.error) throw res.error;
     });
@@ -740,15 +1212,22 @@
     setSyncStatus("saving");
     Promise.all([
       supabaseClient.from("todos").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: true }),
-      supabaseClient.from("settings").select("*").eq("user_id", currentUser.id).maybeSingle()
+      supabaseClient.from("settings").select("*").eq("user_id", currentUser.id).maybeSingle(),
+      supabaseClient.from("applications").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: true })
     ]).then(function(results){
-      var todosRes = results[0], settingsRes = results[1];
+      var todosRes = results[0], settingsRes = results[1], appsRes = results[2];
       if (todosRes.error) throw todosRes.error;
       state.todos = (todosRes.data || []).map(rowToTodo);
-      if (settingsRes.data) {
-        state.settings = { dailyCapacityMinutes: settingsRes.data.daily_capacity_minutes };
+      if (appsRes.error) {
+        console.warn("applications-Tabelle nicht lesbar — Migration schema-v2.sql ausgeführt?", appsRes.error);
+        state.applications = [];
       } else {
-        state.settings = { dailyCapacityMinutes: 180 };
+        state.applications = (appsRes.data || []).map(rowToApp);
+      }
+      if (settingsRes.data) {
+        state.settings = rowToSettings(settingsRes.data);
+      } else {
+        state.settings = Object.assign({}, DEFAULT_SETTINGS);
         dbUpsertSettings(state.settings).catch(function(){});
       }
       setSyncStatus("synced");
@@ -772,9 +1251,19 @@
         }
         render();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: "user_id=eq." + currentUser.id }, function(payload){
+        if (payload.eventType === "DELETE") {
+          state.applications = state.applications.filter(function(a){ return a.id !== payload.old.id; });
+        } else {
+          var app = rowToApp(payload.new);
+          var i = state.applications.findIndex(function(a){ return a.id === app.id; });
+          if (i >= 0) state.applications[i] = app; else state.applications.push(app);
+        }
+        render();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "user_id=eq." + currentUser.id }, function(payload){
         if (payload.eventType !== "DELETE" && payload.new) {
-          state.settings = { dailyCapacityMinutes: payload.new.daily_capacity_minutes };
+          state.settings = rowToSettings(payload.new);
           render();
         }
       })
@@ -806,12 +1295,9 @@
       return;
     }
     if (!SUPABASE_URL || SUPABASE_URL.indexOf("YOUR_") === 0 || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.indexOf("YOUR_") === 0) {
-      showSetup("Diese Kopie ist noch nicht mit einer Datenbank verbunden. Trag SUPABASE_URL und SUPABASE_ANON_KEY oben im <script>-Bereich der Datei ein.");
+      showSetup("Diese Kopie ist noch nicht mit einer Datenbank verbunden.");
       return;
     }
-    // implicit flow: the magic link carries the session in the URL hash, so it
-    // works in whichever browser the mail is opened in. (The PKCE default only
-    // works in the exact context that requested the link.)
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
     });
@@ -846,11 +1332,676 @@
       ? "Kein Passwort? Magic Link anfordern"
       : "Ich habe ein Passwort — damit anmelden";
   }
+
+  // ---------- Tagesplan: drei Blöcke statt einer Pauschale ----------
+  function blocksForDay(date, settings){
+    if (isFreeDay(date, settings)) return [];
+    return [
+      { name: "Block 1 · Fokus",   time: "09:30–13:00", cap: settings.deepBlockMinutes,    accepts: ["deep"],            items: [] },
+      { name: "Block 2",           time: "17:00–19:30", cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"],  items: [] },
+      { name: "Kleinkram",         time: "19:30–20:00", cap: settings.adminSlotMinutes,    accepts: ["shallow"],         items: [], maxItem: settings.adminSlotMinutes }
+    ];
+  }
+
+  function buildDayPlan(sortedOpen, settings){
+    var today = startOfToday();
+    var days = [];
+    for (var i = 0; i < HORIZON_DAYS; i++) {
+      var date = addDays(today, i);
+      days.push({ date: date, free: isFreeDay(date, settings), blocks: blocksForDay(date, settings) });
+    }
+    var later = [];
+
+    sortedOpen.forEach(function(todo){
+      var remaining = todo.estimatedMinutes;
+      // Aufgaben, die erst später starten dürfen, frühestens ab ihrem Datum einplanen
+      var earliest = 0;
+      if (todo.deferUntil) {
+        var d = Math.round((new Date(todo.deferUntil + "T00:00:00") - today) / 86400000);
+        if (d > 0) earliest = d;
+      }
+      for (var di = earliest; di < HORIZON_DAYS && remaining > 0; di++) {
+        var day = days[di];
+        if (day.free) continue;
+        for (var bi = 0; bi < day.blocks.length && remaining > 0; bi++) {
+          var b = day.blocks[bi];
+          if (b.accepts.indexOf(todo.taskType) === -1) continue;
+          if (b.maxItem && todo.estimatedMinutes > b.maxItem) continue;
+          var free = b.cap - b.items.reduce(function(sum, it){ return sum + it.minutes; }, 0);
+          if (free <= 0) continue;
+          var alloc = Math.min(free, remaining);
+          b.items.push({ todo: todo, minutes: alloc });
+          remaining -= alloc;
+        }
+      }
+      if (remaining > 0) later.push(todo);
+    });
+    return { days: days, later: later };
+  }
+
+  function renderDayPlan(sortedOpen, settings){
+    var plan = buildDayPlan(sortedOpen, settings);
+    var perDay = settings.deepBlockMinutes + settings.shallowBlockMinutes + settings.adminSlotMinutes;
+    document.getElementById("capacityLabel").textContent = fmtMinutes(perDay) + "/Arbeitstag";
+    var host = document.getElementById("dayPlan");
+    var html = "";
+    var shown = 0;
+
+    plan.days.forEach(function(day, idx){
+      var used = day.blocks.reduce(function(s, b){
+        return s + b.items.reduce(function(x, it){ return x + it.minutes; }, 0);
+      }, 0);
+      if (used === 0 && shown >= 3 && idx > 0) return;
+      shown++;
+      var dayName = idx === 0 ? "Heute" : idx === 1 ? "Morgen" : DAY_NAMES[day.date.getDay()];
+
+      html += '<div class="card day-row" data-free="' + day.free + '">';
+      html += '<div class="day-head"><span class="day-name">' + dayName + '</span>' +
+              '<span class="day-date mono">' + fmtDate(day.date) + '</span></div>';
+
+      if (day.free) {
+        html += '<div class="rest-day">Ruhetag — nichts eingeplant.</div></div>';
+        return;
+      }
+
+      var pct = Math.min(100, Math.round((used / perDay) * 100));
+      html += '<div class="capacity-bar"><div class="capacity-fill" data-over="' + (used > perDay) + '" style="width:' + pct + '%"></div></div>';
+
+      day.blocks.forEach(function(b){
+        var bUsed = b.items.reduce(function(x, it){ return x + it.minutes; }, 0);
+        html += '<div class="block-head"><span class="block-name">' + b.name + '</span>' +
+                '<span class="block-time mono">' + b.time + ' · ' + fmtMinutes(bUsed) + '/' + fmtMinutes(b.cap) + '</span></div>';
+        html += '<div class="day-items">';
+        if (b.items.length === 0) {
+          html += '<div class="block-free">frei</div>';
+        } else {
+          b.items.forEach(function(it){
+            html += '<div class="day-item">' +
+              '<span class="t"><span class="area-dot" data-area="' + escapeHtml(it.todo.area) + '"></span> ' + escapeHtml(it.todo.title) + '</span>' +
+              '<span class="m mono">' + fmtMinutes(it.minutes) + '</span></div>';
+          });
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    if (plan.later.length > 0) {
+      html += '<div class="later-note">+ ' + plan.later.length + ' Aufgabe(n) passen in den nächsten ' + HORIZON_DAYS +
+              ' Tagen nirgends hin. Aufwand, Frist oder Art der Arbeit prüfen.</div>';
+    }
+    host.innerHTML = html;
+  }
+
+  // ---------- Aufgabenkarte ----------
+  function childrenOf(id){
+    return state.todos.filter(function(t){ return t.parentId === id; });
+  }
+
+  function subtaskHtml(parent){
+    var kids = childrenOf(parent.id);
+    if (kids.length === 0) return "";
+    var html = '<div class="subtask-wrap">';
+    kids.forEach(function(k){
+      var done = k.status === "done";
+      html += '<div class="subtask-row" data-done="' + done + '">' +
+        '<button type="button" class="st-box" data-done="' + done + '" data-action="toggle-sub" data-id="' + k.id + '" aria-label="' + (done ? "Wieder öffnen" : "Erledigt") + '">' + (done ? "✓" : "") + '</button>' +
+        '<span class="st-title">' + escapeHtml(k.title) + '</span>' +
+        '<span class="mono" style="font-size:11px;color:var(--ink-faint);">' + fmtMinutes(k.estimatedMinutes) + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function todoCardHtml(todo, now, settings, opts){
+    opts = opts || {};
+    var band = todo.status === "done" ? "done" : bandFor(todo, settings, now);
+    var meta = todo.status === "done" ? { pill: "pill-done", label: "Erledigt" } : bandMeta(band, todo, settings, now);
+    var prio = PRIORITY[todo.priority];
+    var isEditing = editingId === todo.id;
+    var s = slackDays(todo, settings, now);
+    var kids = childrenOf(todo.id);
+
+    var html = '<div class="todo-card" data-id="' + todo.id + '" data-band="' + band + '" data-status="' + todo.status + '" data-area="' + escapeHtml(todo.area) + '">';
+    html += '<div class="todo-top"><div class="todo-main">';
+    html += '<div class="todo-title-row">' +
+            '<span class="area-dot" data-area="' + escapeHtml(todo.area) + '" title="' + escapeHtml(todo.area) + '"></span>' +
+            '<span class="todo-title">' + escapeHtml(todo.title) + '</span>';
+    if (todo.status !== "done") html += '<span class="pill ' + meta.pill + '">' + meta.label + '</span>';
+    if (followUpDue(todo)) html += '<span class="pill pill-critical">Nachfassen fällig</span>';
+    if (todo.taskType === "deep") html += '<span class="deep-chip">Fokus</span>';
+    if (todo.recurrence) html += '<span class="deep-chip">↻ ' + RECUR_LABEL[todo.recurrence] + '</span>';
+    html += '</div>';
+
+    html += '<div class="todo-meta">';
+    html += '<span class="meta-chip mono">' + fmtDue(todo.dueDate) + '</span>';
+    if (kids.length) {
+      var kidMin = kids.reduce(function(x,k){ return x + k.estimatedMinutes; }, 0);
+      html += '<span class="meta-chip mono" title="Summe der Teilschritte">' + fmtMinutes(kidMin) + ' in Teilschritten</span>';
+    } else {
+      html += '<span class="meta-chip mono">' + fmtMinutes(todo.estimatedMinutes) + '</span>';
+    }
+    html += '<span class="pill pill-neutral">' + prio.label + '</span>';
+    html += '<span class="meta-chip">' + escapeHtml(todo.area) + '</span>';
+    if (kids.length) {
+      var doneKids = kids.filter(function(k){ return k.status === "done"; }).length;
+      html += '<span class="progress-mini mono">' + doneKids + '/' + kids.length + ' Teilschritte</span>';
+    }
+    if (todo.status === "waiting" && todo.waitingOn) html += '<span class="meta-chip">⏳ ' + escapeHtml(todo.waitingOn) + '</span>';
+    if (todo.status === "waiting" && todo.followUpDate) html += '<span class="meta-chip mono">Nachfassen: ' + fmtDate(new Date(todo.followUpDate + "T00:00:00")) + '</span>';
+    if (todo.deferUntil) html += '<span class="meta-chip mono">ab ' + fmtDate(new Date(todo.deferUntil + "T00:00:00")) + '</span>';
+    if (todo.scheduledStart) {
+      var st = new Date(todo.scheduledStart);
+      html += '<span class="scheduled-chip mono">📅 ' + fmtShort(st) + ' ' + st.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}) + '</span>';
+    }
+    if (todo.notes) html += '<span class="meta-chip">' + escapeHtml(todo.notes) + '</span>';
+    html += '</div>';
+
+    html += subtaskHtml(todo);
+
+    if (!isEditing) {
+      html += '<button type="button" class="why-toggle" data-action="why" data-id="' + todo.id + '">' + (opts.whyOpen ? "Details verbergen" : "Warum hier?") + '</button>';
+      if (opts.whyOpen) {
+        html += '<div class="why-panel">' +
+          '<div><b>Bereich:</b> ' + escapeHtml(todo.area) + '</div>' +
+          '<div><b>Priorität:</b> ' + prio.label + ' (Gewicht ' + prio.weight + ')</div>' +
+          (s ? '<div><b>Puffer:</b> ' + s.slack.toFixed(1) + ' Tage bei ' + fmtMinutes(dailyCapacity(settings)) + '/Tag</div>'
+             : '<div><b>Puffer:</b> keine Frist gesetzt — wird nach Priorität einsortiert, unterhalb allem mit Frist</div>') +
+          '<div><b>Art:</b> ' + (todo.taskType === "deep" ? "Fokusarbeit — nur Block 1 und Block 2" : "Nebenbei — Block 2 und Kleinkram") + '</div>' +
+          '<div><b>Einstufung:</b> ' + meta.label + '</div>' +
+        '</div>';
+      }
+    }
+    html += '</div>';
+
+    html += '<div class="todo-actions">';
+    var nextStatus = todo.status === "open" ? "in_progress" : todo.status === "in_progress" ? "done" : "open";
+    html += '<button type="button" class="status-cycle" data-status="' + todo.status + '" data-action="cycle" data-id="' + todo.id + '" title="Weiter zu: ' + STATUS_LABEL[nextStatus] + '">' + STATUS_LABEL[todo.status] + '</button>';
+    if (todo.status !== "done") {
+      html += '<button type="button" class="icon-tiny" data-action="wait" data-id="' + todo.id + '" aria-label="Wartet auf jemanden" title="Wartet auf jemanden">⏳</button>';
+    }
+    html += '<button type="button" class="icon-tiny" data-action="edit" data-id="' + todo.id + '" aria-label="Bearbeiten">✎</button>';
+    html += '<button type="button" class="icon-tiny" data-action="delete" data-id="' + todo.id + '" aria-label="Löschen">🗑</button>';
+    html += '</div></div>';
+
+    if (confirmDeleteId === todo.id) {
+      var warn = kids.length ? " Die " + kids.length + " Teilschritte werden mitgelöscht." : "";
+      html += '<div class="confirm-row">Wirklich löschen?' + warn +
+        '<button type="button" class="btn btn-danger" data-action="delete-confirm" data-id="' + todo.id + '" style="padding:5px 12px;font-size:12.5px;">Ja, löschen</button>' +
+        '<button type="button" class="btn btn-ghost" data-action="delete-cancel" data-id="' + todo.id + '" style="padding:5px 12px;font-size:12.5px;">Abbrechen</button>' +
+      '</div>';
+    }
+    if (isEditing) html += editFormHtml(todo);
+    html += '</div>';
+    return html;
+  }
+
+  function editFormHtml(todo){
+    var html = '<div class="edit-panel"><div class="field-grid-4">' +
+      '<div class="field"><label>Titel</label><input type="text" data-edit="title" value="' + escapeHtml(todo.title) + '" maxlength="140" /></div>' +
+      '<div class="field"><label>Bereich</label><select data-edit="area">';
+    AREAS.forEach(function(a){
+      html += '<option value="' + a + '"' + (todo.area === a ? " selected" : "") + '>' + a + '</option>';
+    });
+    html += '</select></div>' +
+      '<div class="field"><label>Fällig am</label><input type="date" data-edit="dueDate" value="' + (todo.dueDate || "") + '" /></div>' +
+      '<div class="field"><label>Aufwand (Std.)</label><input type="number" min="0.25" step="0.25" data-edit="hours" value="' + (todo.estimatedMinutes/60) + '" /></div>' +
+      '</div><div class="field-grid-4" style="margin-top:10px;">' +
+      '<div class="field"><label>Priorität</label><div class="segmented" data-edit-group="priority">';
+    ["low","medium","high","critical"].forEach(function(p){
+      html += '<button type="button" data-value="' + p + '"' + (todo.priority === p ? ' aria-pressed="true"' : '') + '>' + PRIORITY[p].label + '</button>';
+    });
+    html += '</div></div>' +
+      '<div class="field"><label>Art</label><div class="segmented" data-edit-group="taskType">' +
+        '<button type="button" data-value="deep"' + (todo.taskType === "deep" ? ' aria-pressed="true"' : '') + '>Fokus</button>' +
+        '<button type="button" data-value="shallow"' + (todo.taskType !== "deep" ? ' aria-pressed="true"' : '') + '>Nebenbei</button>' +
+      '</div></div>' +
+      '<div class="field"><label>Frühestens ab</label><input type="date" data-edit="deferUntil" value="' + (todo.deferUntil || "") + '" /></div>' +
+      '<div class="field"><label>Wiederholung</label><select data-edit="recurrence">' +
+        '<option value=""' + (!todo.recurrence ? " selected" : "") + '>Keine</option>';
+    Object.keys(RECUR_LABEL).forEach(function(r){
+      html += '<option value="' + r + '"' + (todo.recurrence === r ? " selected" : "") + '>' + RECUR_LABEL[r] + '</option>';
+    });
+    html += '</select></div></div>';
+
+    if (todo.status === "waiting") {
+      html += '<div class="row-2" style="margin-top:10px;">' +
+        '<div class="field"><label>Wartet auf</label><input type="text" data-edit="waitingOn" value="' + escapeHtml(todo.waitingOn || "") + '" maxlength="120" placeholder="Wer oder was?" /></div>' +
+        '<div class="field"><label>Nachfassen am</label><input type="date" data-edit="followUpDate" value="' + (todo.followUpDate || "") + '" /></div></div>';
+    }
+    html += '<div class="row-2" style="margin-top:10px;">' +
+      '<div class="field"><label>Notiz</label><input type="text" data-edit="notes" value="' + escapeHtml(todo.notes || "") + '" maxlength="200" /></div>' +
+      '<div class="field"><label>Gehört zu</label><select data-edit="parentId"><option value="">— eigenständig —</option>';
+    state.todos.filter(function(t){ return t.id !== todo.id && !t.parentId && t.status !== "done"; }).forEach(function(t){
+      html += '<option value="' + t.id + '"' + (todo.parentId === t.id ? " selected" : "") + '>' + escapeHtml(t.title) + '</option>';
+    });
+    html += '</select></div></div>' +
+      '<div class="settings-actions"><button type="button" class="btn btn-ghost" data-action="edit-cancel" data-id="' + todo.id + '">Abbrechen</button>' +
+      '<button type="button" class="btn btn-primary" data-action="edit-save" data-id="' + todo.id + '">Speichern</button></div></div>';
+    return html;
+  }
+
+  // ---------- Pipeline ----------
+  function stageIndex(key){
+    for (var i = 0; i < STAGES.length; i++) if (STAGES[i].key === key) return i;
+    return -1;
+  }
+  function appCardHtml(app){
+    var linkedOpen = state.todos.filter(function(t){ return t.applicationId === app.id && t.status !== "done"; }).length;
+    var idx = stageIndex(app.stage);
+    var html = '<div class="pipe-card" data-id="' + app.id + '">';
+    html += '<div class="pipe-company">' + escapeHtml(app.company) + '</div>';
+    if (app.roleTitle) html += '<div class="pipe-role">' + escapeHtml(app.roleTitle) + '</div>';
+    html += '<div class="pipe-meta"><span class="track-badge">' + escapeHtml(app.track) + '</span>';
+    if (app.deadline) html += '<span class="mono">Frist ' + fmtDate(new Date(app.deadline + "T00:00:00")) + '</span>';
+    if (app.appliedOn) html += '<span class="mono">weg am ' + fmtDate(new Date(app.appliedOn + "T00:00:00")) + '</span>';
+    if (app.followUpDate) {
+      var overdue = app.followUpDate <= todayStr();
+      html += '<span class="' + (overdue ? "pill pill-critical" : "mono") + '">' +
+              (overdue ? "Nachfassen überfällig" : "Nachfassen " + fmtDate(new Date(app.followUpDate + "T00:00:00"))) + '</span>';
+    }
+    if (linkedOpen) html += '<span class="mono">' + linkedOpen + ' offene Aufgabe(n)</span>';
+    var url = safeUrl(app.jobUrl);
+    if (url) html += '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Stelle ansehen</a>';
+    html += '</div>';
+    if (app.nextStep) html += '<div class="pipe-role" style="margin-top:6px;">→ ' + escapeHtml(app.nextStep) + '</div>';
+    html += '<div class="pipe-actions">';
+    if (idx > 0) html += '<button type="button" class="pipe-move" data-action="app-back" data-id="' + app.id + '">← zurück</button>';
+    if (idx >= 0 && idx < STAGES.length - 1) html += '<button type="button" class="pipe-move" data-action="app-fwd" data-id="' + app.id + '">' + STAGES[idx+1].label + ' →</button>';
+    if (app.stage !== "absage") html += '<button type="button" class="pipe-move" data-action="app-reject" data-id="' + app.id + '">Absage</button>';
+    html += '<button type="button" class="pipe-move" data-action="app-task" data-id="' + app.id + '">+ Aufgabe</button>';
+    html += '<button type="button" class="pipe-move" data-action="app-del" data-id="' + app.id + '">Löschen</button>';
+    html += '</div></div>';
+    return html;
+  }
+  function renderPipeline(){
+    var host = document.getElementById("pipeBoard");
+    if (!host) return;
+    var html = "";
+    STAGES.forEach(function(st){
+      var apps = state.applications.filter(function(a){ return a.stage === st.key; });
+      html += '<section class="card pipe-stage"><div class="pipe-stage-head"><h3>' + st.label + '</h3>' +
+              '<span class="count">' + apps.length + '</span></div><div class="pipe-cards">';
+      if (apps.length === 0) html += '<div class="block-free">nichts hier</div>';
+      else apps.forEach(function(a){ html += appCardHtml(a); });
+      html += '</div></section>';
+    });
+    var closed = state.applications.filter(function(a){
+      return CLOSED_STAGES.some(function(c){ return c.key === a.stage; });
+    });
+    if (closed.length) {
+      html += '<details class="side-section"><summary>Abgeschlossen (' + closed.length + ')</summary><div class="side-list">';
+      closed.forEach(function(a){ html += appCardHtml(a); });
+      html += '</div></details>';
+    }
+    if (state.applications.length === 0) {
+      html = '<div class="empty-state"><h3>Noch keine Bewerbung erfasst</h3>' +
+             '<p>Trag oben die erste ein. Jede Stufe, die du bewegst, ist Fortschritt — auch ohne Zusage.</p></div>';
+    }
+    host.innerHTML = html;
+  }
+
+  // ---------- rendering ----------
+  function renderAreaFilter(){
+    var host = document.getElementById("areaFilter");
+    var counts = {};
+    var byId = {};
+    state.todos.forEach(function(t){ byId[t.id] = t; });
+    state.todos.forEach(function(t){
+      if (!isActive(t)) return;
+      var p = t.parentId ? byId[t.parentId] : null;
+      if (p && p.status !== "done") return;   // zaehlt unter der Elternaufgabe
+      counts[t.area] = (counts[t.area] || 0) + 1;
+    });
+    var total = Object.keys(counts).reduce(function(s,k){ return s + counts[k]; }, 0);
+    var html = '<button type="button" class="chip-filter" data-action="filter" data-area="" aria-pressed="' + (!areaFilter) + '">Alle <span class="mono">' + total + '</span></button>';
+    AREAS.forEach(function(a){
+      if (!counts[a] && areaFilter !== a) return;
+      html += '<button type="button" class="chip-filter" data-action="filter" data-area="' + a + '" aria-pressed="' + (areaFilter === a) + '">' +
+              '<span class="area-dot" data-area="' + a + '"></span>' + a + ' <span class="mono">' + (counts[a] || 0) + '</span></button>';
+    });
+    host.innerHTML = html;
+  }
+
+  function render(){
+    var now = new Date();
+    var settings = state.settings;
+    var byId = {};
+    state.todos.forEach(function(t){ byId[t.id] = t; });
+
+    // Eine Aufgabe erscheint als eigene Karte, wenn sie keinen aktiven Elternteil hat.
+    function isTopLevel(t){
+      if (!t.parentId) return true;
+      var p = byId[t.parentId];
+      return !p || p.status === "done";
+    }
+
+    var active = state.todos.filter(function(t){ return isActive(t) && matchesFilter(t); });
+    var cards  = active.filter(isTopLevel);
+    var waiting = state.todos.filter(function(t){ return t.status === "waiting" && !followUpDue(t) && matchesFilter(t); });
+    var deferred = state.todos.filter(function(t){ return t.status !== "done" && isDeferred(t) && matchesFilter(t); });
+    var done = state.todos.filter(function(t){ return t.status === "done" && matchesFilter(t); });
+
+    function sortTodos(list){
+      list.sort(function(a,b){
+        var aHas = !!a.dueDate, bHas = !!b.dueDate;
+        if (aHas !== bHas) return aHas ? -1 : 1;      // Aufgaben mit Frist zuerst
+        var d = scoreFor(b, settings, now) - scoreFor(a, settings, now);
+        if (d !== 0) return d;
+        return (a.dueDate || "9999").localeCompare(b.dueDate || "9999");
+      });
+    }
+    sortTodos(cards);
+    done.sort(function(a,b){ return (b.completedAt||"").localeCompare(a.completedAt||""); });
+
+    document.getElementById("openCount").textContent = cards.length + " offen";
+    document.getElementById("waitingCount").textContent = waiting.length;
+    document.getElementById("deferredCount").textContent = deferred.length;
+    document.getElementById("completedCount").textContent = done.length;
+
+    var listHost = document.getElementById("todoList");
+    if (cards.length === 0) {
+      listHost.innerHTML = '<div class="empty-state"><h3>' + (areaFilter ? "Nichts in diesem Bereich" : "Alles frei") + '</h3>' +
+        '<p>' + (areaFilter ? "Wähle oben „Alle“, um alles zu sehen." : "Trag oben deine erste Aufgabe ein — die Reihenfolge stellt sich von selbst ein.") + '</p></div>';
+    } else {
+      listHost.innerHTML = cards.map(function(t){ return todoCardHtml(t, now, settings, { whyOpen: whyOpenId === t.id }); }).join("");
+    }
+    document.getElementById("waitingList").innerHTML  = waiting.map(function(t){ return todoCardHtml(t, now, settings, {}); }).join("");
+    document.getElementById("deferredList").innerHTML = deferred.map(function(t){ return todoCardHtml(t, now, settings, {}); }).join("");
+    document.getElementById("completedList").innerHTML = done.map(function(t){ return todoCardHtml(t, now, settings, {}); }).join("");
+
+    // Für die Kapazitätsrechnung zählen nur Blätter — sonst würde eine Aufgabe
+    // zusammen mit ihren Teilschritten doppelt Zeit belegen.
+    var planned = active.filter(function(t){ return childrenOf(t.id).length === 0; });
+    sortTodos(planned);
+    renderDayPlan(planned, settings);
+
+    renderAreaFilter();
+    renderPipeline();
+    refreshParentOptions();
+  }
+
+  function refreshParentOptions(){
+    var sel = document.getElementById("f-parent");
+    if (!sel) return;
+    var keep = sel.value;
+    var html = '<option value="">— eigenständig —</option>';
+    state.todos.filter(function(t){ return !t.parentId && t.status !== "done"; }).forEach(function(t){
+      html += '<option value="' + t.id + '">' + escapeHtml(t.title) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.value = keep;
+  }
+
+  // ---------- mutations ----------
+  function addTodo(data){
+    var todo = {
+      id: uid(), title: data.title, dueDate: data.dueDate || null,
+      estimatedMinutes: data.estimatedMinutes, priority: data.priority,
+      notes: data.notes || "", status: "open",
+      area: data.area || "Sonstiges", deferUntil: data.deferUntil || null,
+      waitingOn: "", followUpDate: null, parentId: data.parentId || null,
+      recurrence: data.recurrence || null, taskType: data.taskType || "shallow",
+      applicationId: data.applicationId || null,
+      scheduledStart: null, scheduledEnd: null, calendarEventId: null,
+      createdAt: new Date().toISOString(), completedAt: null
+    };
+    state.todos.push(todo);
+    render();
+    persist(function(){ return dbInsertTodo(todo); });
+    return todo;
+  }
+
+  function updateTodo(id, patch){
+    var t = state.todos.find(function(x){ return x.id === id; });
+    if (!t) return;
+    var wasDone = t.status === "done";
+    Object.assign(t, patch);
+    if (patch.status === "done" && !t.completedAt) t.completedAt = new Date().toISOString();
+    if (patch.status && patch.status !== "done") t.completedAt = null;
+    render();
+    var fullPatch = Object.assign({}, patch, { completedAt: t.completedAt });
+    persist(function(){ return dbUpdateTodo(id, fullPatch); });
+
+    // Wiederholung: beim Abhaken entsteht sofort die nächste Instanz.
+    if (!wasDone && patch.status === "done" && t.recurrence) {
+      var next = nextRecurrence(t.dueDate, t.recurrence);
+      if (next) {
+        addTodo({
+          title: t.title, dueDate: next, estimatedMinutes: t.estimatedMinutes,
+          priority: t.priority, notes: t.notes, area: t.area,
+          recurrence: t.recurrence, taskType: t.taskType, applicationId: t.applicationId
+        });
+      }
+    }
+  }
+
+  function deleteTodo(id){
+    var kids = childrenOf(id).map(function(k){ return k.id; });
+    state.todos = state.todos.filter(function(x){ return x.id !== id && kids.indexOf(x.id) === -1; });
+    render();
+    persist(function(){ return dbDeleteTodo(id); });   // Kinder gehen per ON DELETE CASCADE mit
+  }
+
+  function cycleStatus(id){
+    var t = state.todos.find(function(x){ return x.id === id; });
+    if (!t) return;
+    var next = t.status === "open" ? "in_progress"
+             : t.status === "in_progress" ? "done"
+             : t.status === "waiting" ? "in_progress" : "open";
+    var patch = { status: next };
+    if (next !== "waiting") { patch.waitingOn = ""; patch.followUpDate = null; }
+    updateTodo(id, patch);
+  }
+
+  function markWaiting(id){
+    var t = state.todos.find(function(x){ return x.id === id; });
+    if (!t) return;
+    var who = window.prompt("Worauf oder auf wen wartest du?", t.waitingOn || "");
+    if (who === null) return;
+    var fu = toDateStr(addDays(startOfToday(), state.settings.followUpAfterDays));
+    editingId = null;
+    updateTodo(id, { status: "waiting", waitingOn: who.trim(), followUpDate: fu });
+  }
+
+  // ---------- Bewerbungen ----------
+  function addApplication(data){
+    var app = {
+      id: uid(), company: data.company, roleTitle: data.roleTitle || "",
+      track: data.track || "Sonstiges", stage: "recherchiert",
+      jobUrl: data.jobUrl || "", contactName: "", contactEmail: "",
+      deadline: data.deadline || null, appliedOn: null, followUpDate: null,
+      nextStep: data.nextStep || "", notes: "", createdAt: new Date().toISOString()
+    };
+    state.applications.push(app);
+    render();
+    persist(function(){ return dbInsertApp(app); });
+  }
+  function updateApplication(id, patch){
+    var a = state.applications.find(function(x){ return x.id === id; });
+    if (!a) return;
+    Object.assign(a, patch);
+    render();
+    persist(function(){ return dbUpdateApp(id, patch); });
+  }
+  function moveStage(id, dir){
+    var a = state.applications.find(function(x){ return x.id === id; });
+    if (!a) return;
+    var idx = stageIndex(a.stage);
+    if (idx < 0) idx = 0;
+    var next = idx + dir;
+    if (next < 0 || next >= STAGES.length) return;
+    var key = STAGES[next].key;
+    var patch = { stage: key };
+    // Abgeschickt und nachgefasst setzen das Nachfassdatum automatisch.
+    if (key === "abgeschickt") {
+      patch.appliedOn = todayStr();
+      patch.followUpDate = toDateStr(addDays(startOfToday(), state.settings.followUpAfterDays));
+    } else if (key === "nachgefasst") {
+      patch.followUpDate = toDateStr(addDays(startOfToday(), state.settings.followUpAfterDays));
+    }
+    updateApplication(id, patch);
+  }
+  function deleteApplication(id){
+    if (!window.confirm("Diese Bewerbung wirklich löschen? Verknüpfte Aufgaben bleiben bestehen.")) return;
+    state.applications = state.applications.filter(function(x){ return x.id !== id; });
+    render();
+    persist(function(){ return dbDeleteApp(id); });
+  }
+  function addTaskForApplication(id){
+    var a = state.applications.find(function(x){ return x.id === id; });
+    if (!a) return;
+    var title = window.prompt("Welche Aufgabe für " + a.company + "?", a.nextStep || "");
+    if (!title || !title.trim()) return;
+    addTodo({
+      title: title.trim() + " · " + a.company, area: "Bewerbung",
+      dueDate: a.deadline || null, estimatedMinutes: 90, priority: "high",
+      taskType: "deep", applicationId: a.id, notes: ""
+    });
+    activeView = "tasks";
+    applyView();
+  }
+
+  // ---------- Ansichtswechsel ----------
+  function applyView(){
+    document.getElementById("viewTasks").style.display = activeView === "tasks" ? "block" : "none";
+    document.getElementById("viewPipeline").style.display = activeView === "pipeline" ? "block" : "none";
+    document.querySelectorAll(".viewbar button").forEach(function(b){
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === activeView));
+    });
+  }
+  document.querySelector(".viewbar").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-view]");
+    if (!b) return;
+    activeView = b.getAttribute("data-view");
+    applyView();
+  });
+
+  // ---------- globale Klick-Behandlung ----------
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-action]");
+    if (!el) return;
+    var action = el.getAttribute("data-action");
+    var id = el.getAttribute("data-id");
+
+    if (action === "cycle") { cycleStatus(id); }
+    else if (action === "toggle-sub") {
+      var k = state.todos.find(function(x){ return x.id === id; });
+      if (k) updateTodo(id, { status: k.status === "done" ? "open" : "done" });
+    }
+    else if (action === "wait") { markWaiting(id); }
+    else if (action === "delete") { confirmDeleteId = id; render(); }
+    else if (action === "delete-cancel") { confirmDeleteId = null; render(); }
+    else if (action === "delete-confirm") { confirmDeleteId = null; deleteTodo(id); }
+    else if (action === "edit") { editingId = id; whyOpenId = null; render(); }
+    else if (action === "edit-cancel") { editingId = null; render(); }
+    else if (action === "why") { whyOpenId = whyOpenId === id ? null : id; render(); }
+    else if (action === "filter") {
+      var a = el.getAttribute("data-area");
+      areaFilter = a || null;
+      render();
+    }
+    else if (action === "app-fwd") { moveStage(id, 1); }
+    else if (action === "app-back") { moveStage(id, -1); }
+    else if (action === "app-reject") { updateApplication(id, { stage: "absage", followUpDate: null }); }
+    else if (action === "app-del") { deleteApplication(id); }
+    else if (action === "app-task") { addTaskForApplication(id); }
+    else if (action === "edit-save") {
+      var card = el.closest(".todo-card");
+      var val = function(sel){ var n = card.querySelector(sel); return n ? n.value : ""; };
+      var title = val('[data-edit="title"]').trim();
+      if (!title) return;
+      var hours = parseFloat(val('[data-edit="hours"]')) || 0.25;
+      var prioBtn = card.querySelector('[data-edit-group="priority"] [aria-pressed="true"]');
+      var typeBtn = card.querySelector('[data-edit-group="taskType"] [aria-pressed="true"]');
+      var patch = {
+        title: title,
+        dueDate: val('[data-edit="dueDate"]') || null,
+        estimatedMinutes: Math.round(hours * 60),
+        notes: val('[data-edit="notes"]').trim(),
+        area: val('[data-edit="area"]') || "Sonstiges",
+        deferUntil: val('[data-edit="deferUntil"]') || null,
+        recurrence: val('[data-edit="recurrence"]') || null,
+        parentId: val('[data-edit="parentId"]') || null,
+        priority: prioBtn ? prioBtn.getAttribute("data-value") : "medium",
+        taskType: typeBtn ? typeBtn.getAttribute("data-value") : "shallow"
+      };
+      if (card.querySelector('[data-edit="waitingOn"]')) {
+        patch.waitingOn = val('[data-edit="waitingOn"]').trim();
+        patch.followUpDate = val('[data-edit="followUpDate"]') || null;
+      }
+      if (patch.parentId === id) patch.parentId = null;   // sich selbst als Elternteil verhindern
+      editingId = null;
+      updateTodo(id, patch);
+    }
+  });
+
+  // Segmentierte Umschalter (Priorität / Art) — im Formular und in der Bearbeitung
+  document.addEventListener("click", function(e){
+    var seg = e.target.closest('.segmented button');
+    if (!seg) return;
+    var group = seg.parentElement;
+    Array.prototype.forEach.call(group.children, function(b){ b.removeAttribute("aria-pressed"); });
+    seg.setAttribute("aria-pressed", "true");
+  });
+
+  document.getElementById("syncChip").addEventListener("click", function(){
+    if (this.getAttribute("data-state") === "error" && currentUser) loadRemoteData();
+  });
+
+  // ---------- Formular: neue Aufgabe ----------
+  document.getElementById("addForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var title = document.getElementById("f-title").value.trim();
+    var hours = parseFloat(document.getElementById("f-hours").value);
+    if (!title || !hours || hours <= 0) return;
+    var prioBtn = document.querySelector("#prioritySegment [aria-pressed='true']");
+    var typeBtn = document.querySelector("#typeSegment [aria-pressed='true']");
+    addTodo({
+      title: title,
+      dueDate: document.getElementById("f-due").value || null,
+      estimatedMinutes: Math.round(hours * 60),
+      priority: prioBtn ? prioBtn.getAttribute("data-value") : "medium",
+      taskType: typeBtn ? typeBtn.getAttribute("data-value") : "shallow",
+      area: document.getElementById("f-area").value,
+      notes: document.getElementById("f-notes").value.trim(),
+      deferUntil: document.getElementById("f-defer").value || null,
+      recurrence: document.getElementById("f-recur").value || null,
+      parentId: document.getElementById("f-parent").value || null
+    });
+    var area = document.getElementById("f-area").value;
+    this.reset();
+    document.getElementById("f-area").value = area;   // Bereich bleibt stehen
+    document.querySelectorAll("#prioritySegment button").forEach(function(b){ b.removeAttribute("aria-pressed"); });
+    document.querySelector("#prioritySegment [data-value='medium']").setAttribute("aria-pressed","true");
+    document.querySelectorAll("#typeSegment button").forEach(function(b){ b.removeAttribute("aria-pressed"); });
+    document.querySelector("#typeSegment [data-value='shallow']").setAttribute("aria-pressed","true");
+    document.getElementById("f-title").focus();
+  });
+
+  // ---------- Formular: neue Bewerbung ----------
+  document.getElementById("appForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var company = document.getElementById("a-company").value.trim();
+    if (!company) return;
+    addApplication({
+      company: company,
+      roleTitle: document.getElementById("a-role").value.trim(),
+      track: document.getElementById("a-track").value,
+      deadline: document.getElementById("a-deadline").value || null,
+      jobUrl: document.getElementById("a-url").value.trim(),
+      nextStep: document.getElementById("a-next").value.trim()
+    });
+    this.reset();
+    document.getElementById("a-company").focus();
+  });
+
+  // ---------- Login ----------
   document.getElementById("loginSwitch").addEventListener("click", function(){
     setLoginMode(loginMode === "password" ? "magic" : "password");
     document.getElementById("loginStatus").textContent = "";
   });
-
   document.getElementById("loginForm").addEventListener("submit", function(e){
     e.preventDefault();
     var email = document.getElementById("loginEmail").value.trim();
@@ -885,276 +2036,42 @@
     supabaseClient.auth.signOut();
   });
 
-  // ---------- day plan ----------
-  function buildDayPlan(sortedOpen, settings){
-    var capacity = settings.dailyCapacityMinutes;
-    var today = startOfToday();
-    var buckets = [];
-    for (var i = 0; i < HORIZON_DAYS; i++) buckets.push({ date: addDays(today, i), remaining: capacity, items: [] });
-    var later = [];
-    sortedOpen.forEach(function(todo){
-      var remainingTodo = todo.estimatedMinutes;
-      var dayIndex = 0;
-      while (remainingTodo > 0 && dayIndex < HORIZON_DAYS) {
-        var bucket = buckets[dayIndex];
-        if (bucket.remaining <= 0) { dayIndex++; continue; }
-        var alloc = Math.min(bucket.remaining, remainingTodo);
-        bucket.items.push({ todo: todo, minutes: alloc });
-        bucket.remaining -= alloc;
-        remainingTodo -= alloc;
-        if (bucket.remaining <= 0) dayIndex++;
-      }
-      if (remainingTodo > 0) later.push(todo);
-    });
-    return { buckets: buckets, later: later, capacity: capacity };
-  }
-
-  function renderDayPlan(sortedOpen, settings){
-    var plan = buildDayPlan(sortedOpen, settings);
-    document.getElementById("capacityLabel").textContent = (settings.dailyCapacityMinutes/60) + " Std/Tag";
-    var host = document.getElementById("dayPlan");
-    var html = "";
-    var shown = 0;
-    plan.buckets.forEach(function(bucket, idx){
-      if (bucket.items.length === 0 && shown >= 3 && idx > 0) return;
-      shown++;
-      var dayName = idx === 0 ? "Heute" : idx === 1 ? "Morgen" : DAY_NAMES[bucket.date.getDay()];
-      var used = plan.capacity - bucket.remaining;
-      var pct = Math.min(100, Math.round((used / plan.capacity) * 100));
-      var over = used > plan.capacity;
-      html += '<div class="card day-row">' +
-        '<div class="day-head"><span class="day-name">' + dayName + '</span>' +
-        '<span class="day-date mono">' + fmtDate(bucket.date) + '</span></div>' +
-        '<div class="capacity-bar"><div class="capacity-fill" data-over="' + over + '" style="width:' + pct + '%"></div></div>' +
-        '<div class="day-items">';
-      if (bucket.items.length === 0) {
-        html += '<div class="day-empty">Frei</div>';
-      } else {
-        bucket.items.forEach(function(it){
-          html += '<div class="day-item"><span class="t">' + escapeHtml(it.todo.title) + '</span><span class="m mono">' + fmtMinutes(it.minutes) + '</span></div>';
-        });
-      }
-      html += '</div></div>';
-    });
-    if (plan.later.length > 0) {
-      html += '<div class="later-note">+ ' + plan.later.length + ' weitere später als in ' + HORIZON_DAYS + ' Tagen eingeplant (Kapazität reicht nicht) — Aufwand oder Frist prüfen.</div>';
-    }
-    host.innerHTML = html;
-  }
-
-  // ---------- rendering ----------
-  function todoCardHtml(todo, now, settings, opts){
-    opts = opts || {};
-    var band = todo.status === "done" ? "done" : bandFor(todo, settings, now);
-    var meta = todo.status === "done" ? { pill: "pill-done", label: "Erledigt" } : bandMeta(band, todo, settings, now);
-    var prio = PRIORITY[todo.priority];
-    var isEditing = editingId === todo.id;
-    var s = slackDays(todo, settings, now);
-
-    var html = '<div class="todo-card" data-id="' + todo.id + '" data-band="' + band + '" data-status="' + todo.status + '">';
-    html += '<div class="todo-top">';
-    html += '<div class="todo-main">';
-    html += '<div class="todo-title-row"><span class="todo-title">' + escapeHtml(todo.title) + '</span>';
-    if (todo.status !== "done") html += '<span class="pill ' + meta.pill + '">' + meta.label + '</span>';
-    html += '</div>';
-    html += '<div class="todo-meta">';
-    html += '<span class="meta-chip mono">' + fmtDue(todo.dueDate) + '</span>';
-    html += '<span class="meta-chip mono">' + fmtMinutes(todo.estimatedMinutes) + '</span>';
-    html += '<span class="pill pill-neutral">' + prio.label + '</span>';
-    if (todo.notes) html += '<span class="meta-chip">' + escapeHtml(todo.notes) + '</span>';
-    html += '</div>';
-    if (!isEditing) {
-      html += '<button type="button" class="why-toggle" data-action="why" data-id="' + todo.id + '">' + (opts.whyOpen ? "Details verbergen" : "Warum hier?") + '</button>';
-      if (opts.whyOpen) {
-        html += '<div class="why-panel">' +
-          '<div><b>Priorität:</b> ' + prio.label + ' (Gewicht ' + prio.weight + ')</div>' +
-          '<div><b>Puffer:</b> ' + s.slack.toFixed(1) + ' Tage bei ' + (settings.dailyCapacityMinutes/60) + ' Std/Tag</div>' +
-          '<div><b>Einstufung:</b> ' + meta.label + '</div>' +
-        '</div>';
-      }
-    }
-    html += '</div>';
-
-    html += '<div class="todo-actions">';
-    var nextStatus = todo.status === "open" ? "in_progress" : todo.status === "in_progress" ? "done" : "open";
-    html += '<button type="button" class="status-cycle" data-status="' + todo.status + '" data-action="cycle" data-id="' + todo.id + '" title="Weiter zu: ' + STATUS_LABEL[nextStatus] + '">' + STATUS_LABEL[todo.status] + '</button>';
-    html += '<button type="button" class="icon-tiny" data-action="edit" data-id="' + todo.id + '" aria-label="Bearbeiten">✎</button>';
-    html += '<button type="button" class="icon-tiny" data-action="delete" data-id="' + todo.id + '" aria-label="Löschen">🗑</button>';
-    html += '</div>';
-    html += '</div>';
-
-    if (confirmDeleteId === todo.id) {
-      html += '<div class="confirm-row">Wirklich löschen?' +
-        '<button type="button" class="btn btn-danger" data-action="delete-confirm" data-id="' + todo.id + '" style="padding:5px 12px;font-size:12.5px;">Ja, löschen</button>' +
-        '<button type="button" class="btn btn-ghost" data-action="delete-cancel" data-id="' + todo.id + '" style="padding:5px 12px;font-size:12.5px;">Abbrechen</button>' +
-      '</div>';
-    }
-    if (isEditing) html += editFormHtml(todo);
-    html += '</div>';
-    return html;
-  }
-
-  function editFormHtml(todo){
-    var opts = ["low","medium","high","critical"];
-    var html = '<div class="edit-panel"><div class="field-grid">' +
-      '<div class="field"><label>Titel</label><input type="text" data-edit="title" value="' + escapeHtml(todo.title) + '" maxlength="140" /></div>' +
-      '<div class="field"><label>Fällig am</label><input type="date" data-edit="dueDate" value="' + todo.dueDate + '" /></div>' +
-      '<div class="field"><label>Aufwand (Std.)</label><input type="number" min="0.25" step="0.25" data-edit="hours" value="' + (todo.estimatedMinutes/60) + '" /></div>' +
-      '</div><div class="row-2" style="margin-top:10px;">' +
-      '<div class="field"><label>Priorität</label><div class="segmented" data-edit-group="priority">';
-    opts.forEach(function(p){
-      html += '<button type="button" data-value="' + p + '"' + (todo.priority === p ? ' aria-pressed="true"' : '') + '>' + PRIORITY[p].label + '</button>';
-    });
-    html += '</div></div><div class="field"><label>Notiz</label><input type="text" data-edit="notes" value="' + escapeHtml(todo.notes || "") + '" maxlength="200" /></div></div>' +
-      '<div class="settings-actions"><button type="button" class="btn btn-ghost" data-action="edit-cancel" data-id="' + todo.id + '">Abbrechen</button>' +
-      '<button type="button" class="btn btn-primary" data-action="edit-save" data-id="' + todo.id + '">Speichern</button></div></div>';
-    return html;
-  }
-
-  function render(){
-    var now = new Date();
-    var settings = state.settings;
-    var open = state.todos.filter(function(t){ return t.status !== "done"; });
-    var done = state.todos.filter(function(t){ return t.status === "done"; });
-
-    open.sort(function(a,b){
-      var sb = scoreFor(b, settings, now) - scoreFor(a, settings, now);
-      if (sb !== 0) return sb;
-      return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
-    });
-    done.sort(function(a,b){ return (b.completedAt||"").localeCompare(a.completedAt||""); });
-
-    document.getElementById("openCount").textContent = open.length + " offen";
-    document.getElementById("completedCount").textContent = done.length;
-
-    var listHost = document.getElementById("todoList");
-    if (open.length === 0) {
-      listHost.innerHTML = '<div class="empty-state"><h3>Alles frei</h3><p>Trag oben dein erstes To-Do ein — die Reihenfolge stellt sich von selbst ein.</p></div>';
-    } else {
-      listHost.innerHTML = open.map(function(t){ return todoCardHtml(t, now, settings, { whyOpen: whyOpenId === t.id }); }).join("");
-    }
-    document.getElementById("completedList").innerHTML = done.map(function(t){ return todoCardHtml(t, now, settings, {}); }).join("");
-
-    renderDayPlan(open, settings);
-  }
-
-  // ---------- mutations ----------
-  function addTodo(data){
-    var todo = {
-      id: uid(), title: data.title, dueDate: data.dueDate, estimatedMinutes: data.estimatedMinutes,
-      priority: data.priority, notes: data.notes || "", status: "open",
-      createdAt: new Date().toISOString(), completedAt: null
-    };
-    state.todos.push(todo);
-    render();
-    persist(function(){ return dbInsertTodo(todo); });
-  }
-  function updateTodo(id, patch){
-    var t = state.todos.find(function(x){ return x.id === id; });
-    if (!t) return;
-    Object.assign(t, patch);
-    if (patch.status === "done" && !t.completedAt) t.completedAt = new Date().toISOString();
-    if (patch.status && patch.status !== "done") t.completedAt = null;
-    render();
-    var fullPatch = Object.assign({}, patch, { completedAt: t.completedAt });
-    persist(function(){ return dbUpdateTodo(id, fullPatch); });
-  }
-  function deleteTodo(id){
-    state.todos = state.todos.filter(function(x){ return x.id !== id; });
-    render();
-    persist(function(){ return dbDeleteTodo(id); });
-  }
-  function cycleStatus(id){
-    var t = state.todos.find(function(x){ return x.id === id; });
-    if (!t) return;
-    var next = t.status === "open" ? "in_progress" : t.status === "in_progress" ? "done" : "open";
-    updateTodo(id, { status: next });
-  }
-
-  // ---------- event wiring ----------
-  document.addEventListener("click", function(e){
-    var el = e.target.closest("[data-action]");
-    if (!el) return;
-    var action = el.getAttribute("data-action");
-    var id = el.getAttribute("data-id");
-
-    if (action === "cycle") { cycleStatus(id); }
-    else if (action === "delete") { confirmDeleteId = id; render(); }
-    else if (action === "delete-cancel") { confirmDeleteId = null; render(); }
-    else if (action === "delete-confirm") { confirmDeleteId = null; deleteTodo(id); }
-    else if (action === "edit") { editingId = id; whyOpenId = null; render(); }
-    else if (action === "edit-cancel") { editingId = null; render(); }
-    else if (action === "why") { whyOpenId = whyOpenId === id ? null : id; render(); }
-    else if (action === "edit-save") {
-      var card = el.closest(".todo-card");
-      var title = card.querySelector('[data-edit="title"]').value.trim();
-      var dueDate = card.querySelector('[data-edit="dueDate"]').value;
-      var hours = parseFloat(card.querySelector('[data-edit="hours"]').value) || 0.25;
-      var notes = card.querySelector('[data-edit="notes"]').value.trim();
-      var prioBtn = card.querySelector('[data-edit-group="priority"] [aria-pressed="true"]');
-      var priority = prioBtn ? prioBtn.getAttribute("data-value") : "medium";
-      if (!title || !dueDate) return;
-      editingId = null;
-      updateTodo(id, { title: title, dueDate: dueDate, estimatedMinutes: Math.round(hours*60), notes: notes, priority: priority });
-    }
-  });
-
-  document.addEventListener("click", function(e){
-    var seg = e.target.closest('[data-edit-group="priority"] button, #prioritySegment button');
-    if (!seg) return;
-    var group = seg.parentElement;
-    Array.prototype.forEach.call(group.children, function(b){ b.removeAttribute("aria-pressed"); });
-    seg.setAttribute("aria-pressed", "true");
-  });
-
-  document.getElementById("syncChip").addEventListener("click", function(){
-    if (this.getAttribute("data-state") === "error" && currentUser) loadRemoteData();
-  });
-
-  document.getElementById("addForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    var title = document.getElementById("f-title").value.trim();
-    var due = document.getElementById("f-due").value;
-    var hours = parseFloat(document.getElementById("f-hours").value);
-    var notes = document.getElementById("f-notes").value.trim();
-    var prioBtn = document.querySelector("#prioritySegment [aria-pressed='true']");
-    var priority = prioBtn ? prioBtn.getAttribute("data-value") : "medium";
-    if (!title || !due || !hours || hours <= 0) return;
-    addTodo({ title: title, dueDate: due, estimatedMinutes: Math.round(hours*60), priority: priority, notes: notes });
-    this.reset();
-    document.querySelectorAll("#prioritySegment button").forEach(function(b){ b.removeAttribute("aria-pressed"); });
-    document.querySelector("#prioritySegment [data-value='medium']").setAttribute("aria-pressed","true");
-    document.getElementById("f-title").focus();
-  });
-
-  (function(){
-    var d = new Date();
-    document.getElementById("f-due").min = d.toISOString().slice(0,10);
-    document.getElementById("f-due").value = d.toISOString().slice(0,10);
-  })();
-
+  // ---------- Einstellungen ----------
   var backdrop = document.getElementById("settingsBackdrop");
   document.getElementById("settingsBtn").addEventListener("click", function(){
-    document.getElementById("capacityInput").value = state.settings.dailyCapacityMinutes/60;
+    document.getElementById("deepInput").value    = state.settings.deepBlockMinutes / 60;
+    document.getElementById("shallowInput").value = state.settings.shallowBlockMinutes / 60;
+    document.getElementById("adminInput").value   = state.settings.adminSlotMinutes;
+    document.getElementById("freeDayInput").value = String(state.settings.freeWeekday);
+    document.getElementById("followUpInput").value = state.settings.followUpAfterDays;
     backdrop.style.display = "flex";
   });
   document.getElementById("settingsCancel").addEventListener("click", function(){ backdrop.style.display = "none"; });
   backdrop.addEventListener("click", function(e){ if (e.target === backdrop) backdrop.style.display = "none"; });
   document.getElementById("settingsSave").addEventListener("click", function(){
-    var h = parseFloat(document.getElementById("capacityInput").value);
-    var pw = document.getElementById("newPassword").value;
     var msg = document.getElementById("settingsMsg");
-    if (h && h > 0 && Math.round(h*60) !== state.settings.dailyCapacityMinutes) {
-      state.settings.dailyCapacityMinutes = Math.round(h*60);
-      render();
-      persist(function(){ return dbUpsertSettings(state.settings); });
-    }
+    var deep    = parseFloat(document.getElementById("deepInput").value);
+    var shallow = parseFloat(document.getElementById("shallowInput").value);
+    var admin   = parseInt(document.getElementById("adminInput").value, 10);
+    var freeDay = document.getElementById("freeDayInput").value;
+    var followUp = parseInt(document.getElementById("followUpInput").value, 10);
+    var s = state.settings;
+    if (deep > 0)    s.deepBlockMinutes = Math.round(deep * 60);
+    if (shallow > 0) s.shallowBlockMinutes = Math.round(shallow * 60);
+    if (admin >= 0)  s.adminSlotMinutes = admin;
+    s.freeWeekday = freeDay === "" ? null : parseInt(freeDay, 10);
+    if (followUp > 0) s.followUpAfterDays = followUp;
+    s.dailyCapacityMinutes = dailyCapacity(s);
+    render();
+    persist(function(){ return dbUpsertSettings(s); });
+
+    var pw = document.getElementById("newPassword").value;
     if (pw) {
       if (pw.length < 6) { msg.textContent = "Passwort braucht mindestens 6 Zeichen."; return; }
       msg.textContent = "Setze Passwort…";
       supabaseClient.auth.updateUser({ password: pw }).then(function(res){
         if (res.error) throw res.error;
-        msg.textContent = "Passwort gesetzt. Ab jetzt kein Magic Link mehr nötig.";
+        msg.textContent = "Passwort gesetzt.";
         document.getElementById("newPassword").value = "";
       }).catch(function(err){
         msg.textContent = "Fehler: " + (err && err.message ? err.message : "unbekannt");
@@ -1164,6 +2081,7 @@
     backdrop.style.display = "none";
   });
 
+  // ---------- mobile Tabs ----------
   document.getElementById("tabList").addEventListener("click", function(){
     activeTab = "list";
     this.setAttribute("aria-pressed","true");
@@ -1179,7 +2097,9 @@
     document.querySelector(".list-panel").classList.remove("active");
   });
 
+  applyView();
   boot();
+
 })();
 </script>
 </body>
