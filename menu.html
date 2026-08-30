@@ -116,7 +116,7 @@
   .add-btn:active { transform: scale(0.94); }
   .add-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-  .composer-detail { display: flex; gap: 6px; align-items: center; margin-top: 7px; }
+  .composer-detail { display: flex; gap: 6px; align-items: center; margin-top: 7px; flex-wrap: wrap; }
   .composer-detail input[type="date"],
   .composer-detail input[type="number"] {
     background: var(--surface-2); border: 1px solid var(--border);
@@ -264,25 +264,23 @@
 
   /* ---------- v2 ---------- */
   :root {
-    --area-bewerbung: #2E6F5C; --area-immobilien: #3B6E8F; --area-projekte: #6B4E9E;
-    --area-privat: #B5651D; --area-gesundheit: #4E7A38; --area-sonstiges: #7A8274;
+    --area-bewerbung: #2E6F5C; --area-berrybay: #93356B;
+    --area-privat: #B5651D; --area-sonstiges: #7A8274;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --area-bewerbung: #56B296; --area-immobilien: #6FA8CC; --area-projekte: #A88BD8;
-      --area-privat: #DDA05C; --area-gesundheit: #8FBE6E; --area-sonstiges: #99A394;
+      --area-bewerbung: #56B296; --area-berrybay: #E296BF;
+      --area-privat: #DDA05C; --area-sonstiges: #99A394;
     }
   }
   :root[data-theme="dark"] {
-    --area-bewerbung: #56B296; --area-immobilien: #6FA8CC; --area-projekte: #A88BD8;
-    --area-privat: #DDA05C; --area-gesundheit: #8FBE6E; --area-sonstiges: #99A394;
+    --area-bewerbung: #56B296; --area-berrybay: #E296BF;
+    --area-privat: #DDA05C; --area-sonstiges: #99A394;
   }
   .adot { width: 7px; height: 7px; border-radius: 50%; flex: none; display: inline-block; background: var(--area-sonstiges); }
-  .adot[data-area="Bewerbung"]  { background: var(--area-bewerbung); }
-  .adot[data-area="Immobilien"] { background: var(--area-immobilien); }
-  .adot[data-area="Projekte"]   { background: var(--area-projekte); }
-  .adot[data-area="Privat"]     { background: var(--area-privat); }
-  .adot[data-area="Gesundheit"] { background: var(--area-gesundheit); }
+  .adot[data-area="Bewerbung"] { background: var(--area-bewerbung); }
+  .adot[data-area="Berrybay"]  { background: var(--area-berrybay); }
+  .adot[data-area="Privat"]    { background: var(--area-privat); }
 
   .item-title-row { display: flex; align-items: center; gap: 6px; }
   .tag-focus { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
@@ -294,7 +292,8 @@
     background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-s);
     padding: 5px 6px; color: var(--ink); font-size: 12px; min-width: 0;
   }
-  .focus-seg button { min-width: 26px; }
+  .focus-seg button { white-space: nowrap; }
+  .composer-detail select { flex: 1; min-width: 92px; }
 
   .pipe-alert {
     margin: 0 0 8px; padding: 8px 10px; border-radius: var(--radius-s);
@@ -345,10 +344,8 @@
         <input type="number" id="cHours" min="0.25" step="0.25" value="0.5" aria-label="Aufwand in Stunden" title="Aufwand in Stunden" />
         <select id="cArea" aria-label="Bereich" title="Bereich">
           <option value="Bewerbung">Bewerbung</option>
-          <option value="Immobilien">Immobilien</option>
-          <option value="Projekte">Projekte</option>
+          <option value="Berrybay">Berrybay</option>
           <option value="Privat">Privat</option>
-          <option value="Gesundheit">Gesundheit</option>
           <option value="Sonstiges" selected>Sonstiges</option>
         </select>
         <div class="prio-seg" id="cPrio" role="group" aria-label="Priorität">
@@ -358,8 +355,8 @@
           <button type="button" data-value="critical" title="Kritisch">!</button>
         </div>
         <div class="prio-seg focus-seg" id="cType" role="group" aria-label="Art der Arbeit">
-          <button type="button" data-value="deep" title="Fokusarbeit — nur Block 1 und Block 2">◎</button>
-          <button type="button" data-value="shallow" aria-pressed="true" title="Nebenbei">○</button>
+          <button type="button" data-value="deep" title="Fokusarbeit — darf in Block 1 am Vormittag">Fokus</button>
+          <button type="button" data-value="shallow" aria-pressed="true" title="Nebenbei — Block 2 und Kleinkram">Nebenbei</button>
         </div>
       </div>
     </form>

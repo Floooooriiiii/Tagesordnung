@@ -428,46 +428,36 @@
      ================================================================== */
   :root {
     --area-bewerbung: #2E6F5C;
-    --area-immobilien: #3B6E8F;
-    --area-projekte:   #6B4E9E;
-    --area-privat:     #B5651D;
-    --area-gesundheit: #4E7A38;
-    --area-sonstiges:  #7A8274;
+    --area-berrybay:  #93356B;
+    --area-privat:    #B5651D;
+    --area-sonstiges: #7A8274;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --area-bewerbung: #56B296;
-      --area-immobilien: #6FA8CC;
-      --area-projekte:   #A88BD8;
-      --area-privat:     #DDA05C;
-      --area-gesundheit: #8FBE6E;
-      --area-sonstiges:  #99A394;
+      --area-berrybay:  #E296BF;
+      --area-privat:    #DDA05C;
+      --area-sonstiges: #99A394;
     }
   }
   :root[data-theme="dark"] {
     --area-bewerbung: #56B296;
-    --area-immobilien: #6FA8CC;
-    --area-projekte:   #A88BD8;
-    --area-privat:     #DDA05C;
-    --area-gesundheit: #8FBE6E;
-    --area-sonstiges:  #99A394;
+    --area-berrybay:  #E296BF;
+    --area-privat:    #DDA05C;
+    --area-sonstiges: #99A394;
   }
 
   .area-dot {
     width: 8px; height: 8px; border-radius: 50%; flex: none;
     display: inline-block; background: var(--area-sonstiges);
   }
-  [data-area="Bewerbung"]   .area-dot, .area-dot[data-area="Bewerbung"]   { background: var(--area-bewerbung); }
-  [data-area="Immobilien"]  .area-dot, .area-dot[data-area="Immobilien"]  { background: var(--area-immobilien); }
-  [data-area="Projekte"]    .area-dot, .area-dot[data-area="Projekte"]    { background: var(--area-projekte); }
-  [data-area="Privat"]      .area-dot, .area-dot[data-area="Privat"]      { background: var(--area-privat); }
-  [data-area="Gesundheit"]  .area-dot, .area-dot[data-area="Gesundheit"]  { background: var(--area-gesundheit); }
+  [data-area="Bewerbung"] .area-dot, .area-dot[data-area="Bewerbung"] { background: var(--area-bewerbung); }
+  [data-area="Berrybay"]  .area-dot, .area-dot[data-area="Berrybay"]  { background: var(--area-berrybay); }
+  [data-area="Privat"]    .area-dot, .area-dot[data-area="Privat"]    { background: var(--area-privat); }
 
-  .todo-card[data-area="Bewerbung"]::before  { background: var(--area-bewerbung); }
-  .todo-card[data-area="Immobilien"]::before { background: var(--area-immobilien); }
-  .todo-card[data-area="Projekte"]::before   { background: var(--area-projekte); }
-  .todo-card[data-area="Privat"]::before     { background: var(--area-privat); }
-  .todo-card[data-area="Gesundheit"]::before { background: var(--area-gesundheit); }
+  .todo-card[data-area="Bewerbung"]::before { background: var(--area-bewerbung); }
+  .todo-card[data-area="Berrybay"]::before  { background: var(--area-berrybay); }
+  .todo-card[data-area="Privat"]::before    { background: var(--area-privat); }
   .todo-card[data-band="overdue"]::before,
   .todo-card[data-band="tight"]::before      { background: var(--critical); }
   .todo-card[data-status="done"]::before     { background: var(--done); }
@@ -652,10 +642,8 @@
           <label for="f-area">Bereich</label>
           <select id="f-area">
             <option value="Bewerbung">Bewerbung</option>
-            <option value="Immobilien">Immobilien</option>
-            <option value="Projekte">Projekte</option>
+            <option value="Berrybay">Berrybay</option>
             <option value="Privat">Privat</option>
-            <option value="Gesundheit">Gesundheit</option>
             <option value="Sonstiges" selected>Sonstiges</option>
           </select>
         </div>
@@ -879,7 +867,7 @@
   };
   var DEEP_BONUS = 1.4;   // Fokusarbeit soll nicht von Nebenbei-Kram verdraengt werden
   var STATUS_LABEL = { open: "Offen", in_progress: "In Arbeit", waiting: "Wartet", done: "Erledigt" };
-  var AREAS = ["Bewerbung","Immobilien","Projekte","Privat","Gesundheit","Sonstiges"];
+  var AREAS = ["Bewerbung","Berrybay","Privat","Sonstiges"];
   var DAY_NAMES = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
   var RECUR_LABEL = { daily: "Täglich", weekdays: "Mo–Fr", weekly: "Wöchentlich", monthly: "Monatlich" };
   var STAGES = [
