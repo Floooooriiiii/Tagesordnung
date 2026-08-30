@@ -560,6 +560,14 @@
   .viewbar button:active { transform: translateY(0) scale(0.97); }
   .viewbar button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: var(--shadow-2); }
 
+  .miss-note {
+    margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-s);
+    background: var(--critical-soft); color: var(--critical-ink);
+    font-size: 12px; line-height: 1.5; display: grid; gap: 3px;
+  }
+  .miss-note b { font-size: 12.5px; }
+  .miss-note .hint-line { color: var(--critical-ink); opacity: 0.8; margin-top: 3px; }
+
   .scheduled-chip {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600;
     padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-soft-ink);
@@ -669,7 +677,7 @@
         <div class="field">
           <label>Art der Arbeit</label>
           <div class="segmented" id="typeSegment" role="group" aria-label="Art der Arbeit">
-            <button type="button" data-value="deep">Fokus (Block 1)</button>
+            <button type="button" data-value="deep" title="Konzentrierte Arbeit — bevorzugt vormittags, bei Bedarf auch nachmittags">Fokus</button>
             <button type="button" data-value="shallow" aria-pressed="true">Nebenbei</button>
           </div>
         </div>
@@ -1325,10 +1333,40 @@
   function blocksForDay(date, settings){
     if (isFreeDay(date, settings)) return [];
     return [
-      { name: "Block 1 · Fokus",   time: "09:30–13:00", cap: settings.deepBlockMinutes,    accepts: ["deep"],            items: [] },
-      { name: "Block 2",           time: "17:00–19:30", cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"],  items: [] },
-      { name: "Kleinkram",         time: "19:30–20:00", cap: settings.adminSlotMinutes,    accepts: ["shallow"],         items: [], maxItem: settings.adminSlotMinutes }
+      { name: "Block 1 · Fokus",       time: "09:30–13:00", cap: settings.deepBlockMinutes,    accepts: ["deep"],           items: [], order: { deep: 0 } },
+      { name: "Block 2 · auch Fokus",  time: "17:00–19:30", cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"], items: [], order: { deep: 1, shallow: 1 } },
+      { name: "Kleinkram",             time: "19:30–20:00", cap: settings.adminSlotMinutes,    accepts: ["shallow"],        items: [], maxItem: settings.adminSlotMinutes, order: { shallow: 0 } }
     ];
+  }
+
+  // ---------- Rueckwaertsplanung ----------
+  // Eine Aufgabe soll nicht am Stichtag fertig werden, sondern davor. Der Puffer
+  // waechst mit dem Vorlauf: ein Viertel der verbleibenden Zeit, 1 bis 7 Tage.
+  function bufferDays(daysUntilDue){
+    if (daysUntilDue <= 1) return 0;
+    // Kein Deckel nach oben: bei viel Vorlauf darf der Zielpuffer beliebig
+    // gross werden. Mindestens zwei Tage Sicherheit.
+    return Math.max(2, Math.round(daysUntilDue * 0.25));
+  }
+  // Zieltag als Index ab heute (0 = heute). null = keine Frist gesetzt.
+  function targetDayIndex(todo, today){
+    if (!todo.dueDate) return null;
+    var due = Math.round((new Date(todo.dueDate + "T00:00:00") - today) / 86400000);
+    return due - bufferDays(due);
+  }
+  // Einplanungsreihenfolge: nach Zieltag, damit keine Frist reisst. Die
+  // Anzeigereihenfolge in der Liste bleibt davon unberuehrt (die geht nach
+  // Wichtigkeit) — beides beantwortet eine andere Frage.
+  function sortForPlanning(list, settings, now){
+    var today = startOfToday();
+    return list.slice().sort(function(a, b){
+      var ta = targetDayIndex(a, today), tb = targetDayIndex(b, today);
+      if (ta === null && tb === null) return scoreFor(b, settings, now) - scoreFor(a, settings, now);
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      if (ta !== tb) return ta - tb;
+      return scoreFor(b, settings, now) - scoreFor(a, settings, now);
+    });
   }
 
   function buildDayPlan(sortedOpen, settings){
@@ -1338,10 +1376,11 @@
       var date = addDays(today, i);
       days.push({ date: date, free: isFreeDay(date, settings), blocks: blocksForDay(date, settings) });
     }
-    var later = [];
+    var later = [], missed = [];
 
     sortedOpen.forEach(function(todo){
       var remaining = todo.estimatedMinutes;
+      var lastDay = null;
       // Aufgaben, die erst später starten dürfen, frühestens ab ihrem Datum einplanen
       var earliest = 0;
       if (todo.deferUntil) {
@@ -1351,24 +1390,36 @@
       for (var di = earliest; di < HORIZON_DAYS && remaining > 0; di++) {
         var day = days[di];
         if (day.free) continue;
-        for (var bi = 0; bi < day.blocks.length && remaining > 0; bi++) {
-          var b = day.blocks[bi];
-          if (b.accepts.indexOf(todo.taskType) === -1) continue;
+        // Reihenfolge je Art: Fokusarbeit zuerst in Block 1, Nebenbei-Arbeit
+        // zuerst in den Kleinkram-Slot — so bleibt Block 2 fuer Fokus frei.
+        var order = day.blocks.map(function(b, i){ return { b: b, i: i }; })
+          .filter(function(x){ return x.b.accepts.indexOf(todo.taskType) !== -1; })
+          .sort(function(x, y){
+            var ox = x.b.order && x.b.order[todo.taskType], oy = y.b.order && y.b.order[todo.taskType];
+            return (ox == null ? 99 : ox) - (oy == null ? 99 : oy);
+          });
+        for (var bi = 0; bi < order.length && remaining > 0; bi++) {
+          var b = order[bi].b;
           if (b.maxItem && todo.estimatedMinutes > b.maxItem) continue;
           var free = b.cap - b.items.reduce(function(sum, it){ return sum + it.minutes; }, 0);
           if (free <= 0) continue;
           var alloc = Math.min(free, remaining);
           b.items.push({ todo: todo, minutes: alloc });
           remaining -= alloc;
+          lastDay = di;
         }
       }
       if (remaining > 0) later.push(todo);
+      else if (todo.dueDate && lastDay !== null) {
+        var dueIdx = Math.round((new Date(todo.dueDate + "T00:00:00") - today) / 86400000);
+        if (lastDay > dueIdx) missed.push({ todo: todo, days: lastDay - dueIdx });
+      }
     });
-    return { days: days, later: later };
+    return { days: days, later: later, missed: missed };
   }
 
   function renderDayPlan(sortedOpen, settings){
-    var plan = buildDayPlan(sortedOpen, settings);
+    var plan = buildDayPlan(sortForPlanning(sortedOpen, settings, new Date()), settings);
     var perDay = settings.deepBlockMinutes + settings.shallowBlockMinutes + settings.adminSlotMinutes;
     document.getElementById("capacityLabel").textContent = fmtMinutes(perDay) + "/Arbeitstag";
     var host = document.getElementById("dayPlan");
@@ -1414,6 +1465,13 @@
       html += '</div>';
     });
 
+    if (plan.missed.length > 0) {
+      html += '<div class="miss-note"><b>Frist in Gefahr</b>' +
+        plan.missed.map(function(m){
+          return '<span>' + escapeHtml(m.todo.title) + ' — rechnerisch ' + m.days + ' Tag(e) zu spät fertig</span>';
+        }).join("") +
+        '<span class="hint-line">Aufwand kürzen, Priorität erhöhen oder Frist verschieben.</span></div>';
+    }
     if (plan.later.length > 0) {
       html += '<div class="later-note">+ ' + plan.later.length + ' Aufgabe(n) passen in den nächsten ' + HORIZON_DAYS +
               ' Tagen nirgends hin. Aufwand, Frist oder Art der Arbeit prüfen.</div>';
@@ -1496,7 +1554,7 @@
           '<div><b>Priorität:</b> ' + prio.label + ' (Gewicht ' + prio.weight + ')</div>' +
           (s ? '<div><b>Puffer:</b> ' + s.slack.toFixed(1) + ' Tage bei ' + fmtMinutes(dailyCapacity(settings)) + '/Tag</div>'
              : '<div><b>Puffer:</b> keine Frist gesetzt — wird nach Priorität einsortiert, unterhalb allem mit Frist</div>') +
-          '<div><b>Art:</b> ' + (todo.taskType === "deep" ? "Fokusarbeit — nur Block 1 und Block 2" : "Nebenbei — Block 2 und Kleinkram") + '</div>' +
+          '<div><b>Art:</b> ' + (todo.taskType === "deep" ? "Fokusarbeit — bevorzugt Block 1 am Vormittag, bei Bedarf auch Block 2 am Nachmittag" : "Nebenbei — zuerst Kleinkram-Slot, dann Block 2") + '</div>' +
           '<div><b>Einstufung:</b> ' + meta.label + '</div>' +
         '</div>';
       }
