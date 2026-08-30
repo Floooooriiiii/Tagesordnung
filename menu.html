@@ -261,6 +261,50 @@
   .sheet-actions .save { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
   .sheet .msg { font-size: 11.5px; margin-top: 9px; color: var(--ink-muted); min-height: 1em; }
   .sheet .signout { margin-top: 12px; background: none; border: none; color: var(--critical); font-size: 12px; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ---------- v2 ---------- */
+  :root {
+    --area-bewerbung: #2E6F5C; --area-immobilien: #3B6E8F; --area-projekte: #6B4E9E;
+    --area-privat: #B5651D; --area-gesundheit: #4E7A38; --area-sonstiges: #7A8274;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --area-bewerbung: #56B296; --area-immobilien: #6FA8CC; --area-projekte: #A88BD8;
+      --area-privat: #DDA05C; --area-gesundheit: #8FBE6E; --area-sonstiges: #99A394;
+    }
+  }
+  :root[data-theme="dark"] {
+    --area-bewerbung: #56B296; --area-immobilien: #6FA8CC; --area-projekte: #A88BD8;
+    --area-privat: #DDA05C; --area-gesundheit: #8FBE6E; --area-sonstiges: #99A394;
+  }
+  .adot { width: 7px; height: 7px; border-radius: 50%; flex: none; display: inline-block; background: var(--area-sonstiges); }
+  .adot[data-area="Bewerbung"]  { background: var(--area-bewerbung); }
+  .adot[data-area="Immobilien"] { background: var(--area-immobilien); }
+  .adot[data-area="Projekte"]   { background: var(--area-projekte); }
+  .adot[data-area="Privat"]     { background: var(--area-privat); }
+  .adot[data-area="Gesundheit"] { background: var(--area-gesundheit); }
+
+  .item-title-row { display: flex; align-items: center; gap: 6px; }
+  .tag-focus { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+               padding: 1px 5px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-faint); }
+  .tag-wait { background: var(--surface-2); color: var(--ink-muted); border: 1px solid var(--border); }
+  .sub-mini { font-size: 10.5px; color: var(--ink-faint); }
+
+  .composer-detail select {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-s);
+    padding: 5px 6px; color: var(--ink); font-size: 12px; min-width: 0;
+  }
+  .focus-seg button { min-width: 26px; }
+
+  .pipe-alert {
+    margin: 0 0 8px; padding: 8px 10px; border-radius: var(--radius-s);
+    background: var(--critical-soft); color: var(--critical-ink); font-size: 11.5px; line-height: 1.45;
+  }
+  .pipe-alert b { display: block; margin-bottom: 2px; }
+  .pipe-alert .who { display: block; }
+  .pipe-line {
+    font-size: 11px; color: var(--ink-faint); padding: 6px 2px 2px; text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -297,13 +341,25 @@
         <button type="submit" class="add-btn" id="cAdd" aria-label="To-Do hinzufügen">+</button>
       </div>
       <div class="composer-detail">
-        <input type="date" id="cDue" aria-label="Fällig am" />
+        <input type="date" id="cDue" aria-label="Fällig am (optional)" title="Fällig am — leer lassen heißt: ohne Frist" />
         <input type="number" id="cHours" min="0.25" step="0.25" value="0.5" aria-label="Aufwand in Stunden" title="Aufwand in Stunden" />
+        <select id="cArea" aria-label="Bereich" title="Bereich">
+          <option value="Bewerbung">Bewerbung</option>
+          <option value="Immobilien">Immobilien</option>
+          <option value="Projekte">Projekte</option>
+          <option value="Privat">Privat</option>
+          <option value="Gesundheit">Gesundheit</option>
+          <option value="Sonstiges" selected>Sonstiges</option>
+        </select>
         <div class="prio-seg" id="cPrio" role="group" aria-label="Priorität">
           <button type="button" data-value="low" title="Niedrig">N</button>
           <button type="button" data-value="medium" aria-pressed="true" title="Mittel">M</button>
           <button type="button" data-value="high" title="Hoch">H</button>
           <button type="button" data-value="critical" title="Kritisch">!</button>
+        </div>
+        <div class="prio-seg focus-seg" id="cType" role="group" aria-label="Art der Arbeit">
+          <button type="button" data-value="deep" title="Fokusarbeit — nur Block 1 und Block 2">◎</button>
+          <button type="button" data-value="shallow" aria-pressed="true" title="Nebenbei">○</button>
         </div>
       </div>
     </form>
@@ -324,10 +380,20 @@
 <div class="sheet-back" id="sheetBack" style="display:none;">
   <div class="sheet">
     <h2>Einstellungen</h2>
-    <label for="capInput">Stunden pro Tag</label>
-    <input type="number" id="capInput" min="0.5" step="0.25" />
+    <label for="deepIn">Block 1 · Fokus (Std.)</label>
+    <input type="number" id="deepIn" min="0" step="0.25" />
+    <label for="shallowIn">Block 2 (Std.)</label>
+    <input type="number" id="shallowIn" min="0" step="0.25" />
+    <label for="adminIn">Kleinkram (Min.)</label>
+    <input type="number" id="adminIn" min="0" step="5" />
+    <label for="freeIn">Freier Tag</label>
+    <select id="freeIn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:7px 9px;margin-top:4px;color:var(--ink);font-size:13px;">
+      <option value="0">Sonntag</option><option value="1">Montag</option><option value="2">Dienstag</option>
+      <option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option>
+      <option value="6">Samstag</option><option value="">Keiner</option>
+    </select>
     <label for="newPw">Passwort setzen / ändern</label>
-    <input type="password" id="newPw" autocomplete="new-password" placeholder="Mind. 6 Zeichen — dann nie wieder Magic Link" />
+    <input type="password" id="newPw" autocomplete="new-password" placeholder="Mind. 6 Zeichen" />
     <p class="msg" id="sheetMsg"></p>
     <p class="who" id="whoAmI"></p>
     <button class="signout" id="signOut" type="button">Abmelden</button>
@@ -342,19 +408,25 @@
 <script>
 (function(){
   "use strict";
-
   var SUPABASE_URL = "https://noesfohqryxgxcmzwznm.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vZXNmb2hxcnl4Z3hjbXp3em5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0ODQ4NzYsImV4cCI6MjEwMzA2MDg3Nn0.iCgWxBKQVeCNkNCEw_adNVsx9fAqFSYg8DinwugCVQc";
 
+  // Gewichte und Bewertung identisch zu index.html — beide Ansichten muessen
+  // dieselbe Reihenfolge zeigen, sonst widersprechen sie sich.
   var PRIORITY = {
     low:      { label: "Niedrig",  weight: 1 },
-    medium:   { label: "Mittel",   weight: 2 },
-    high:     { label: "Hoch",     weight: 4 },
-    critical: { label: "Kritisch", weight: 7 }
+    medium:   { label: "Mittel",   weight: 3 },
+    high:     { label: "Hoch",     weight: 9 },
+    critical: { label: "Kritisch", weight: 24 }
   };
+  var DEEP_BONUS = 1.4;
   var DAY_NAMES = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  var DEFAULTS = {
+    dailyCapacityMinutes: 180, deepBlockMinutes: 210, shallowBlockMinutes: 150,
+    adminSlotMinutes: 30, freeWeekday: 0, followUpAfterDays: 14
+  };
 
-  var state = { todos: [], settings: { dailyCapacityMinutes: 180 } };
+  var state = { todos: [], applications: [], settings: Object.assign({}, DEFAULTS) };
   var sb = null, currentUser = null, channel = null;
   var confirmDeleteId = null, showDone = false, authMode = "password";
 
@@ -364,7 +436,9 @@
     return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
   }
   function startOfToday(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
-  function todayStr(){ return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function addDays(date, n){ var d = new Date(date); d.setDate(d.getDate() + n); return d; }
+  function toDateStr(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function todayStr(){ return toDateStr(new Date()); }
   function endOfDayFromStr(s){ var d = new Date(s + "T00:00:00"); d.setHours(23,59,0,0); return d; }
   function fmtMin(m){
     m = Math.round(m);
@@ -377,33 +451,83 @@
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
     });
   }
+  function dailyCapacity(cfg){
+    var per = cfg.deepBlockMinutes + cfg.shallowBlockMinutes + cfg.adminSlotMinutes;
+    var days = (cfg.freeWeekday === null || cfg.freeWeekday === undefined) ? 7 : 6;
+    return Math.max(30, Math.round(per * days / 7));
+  }
   function slack(t, cfg, now){
+    if (!t.dueDate) return null;
     var daysUntil = (endOfDayFromStr(t.dueDate) - now) / 86400000;
-    return { daysUntil: daysUntil, slack: daysUntil - (t.estimatedMinutes / cfg.dailyCapacityMinutes) };
+    return { daysUntil: daysUntil, slack: daysUntil - (t.estimatedMinutes / dailyCapacity(cfg)) };
   }
   function score(t, cfg, now){
-    var w = PRIORITY[t.priority].weight, s = slack(t, cfg, now);
+    var w = PRIORITY[t.priority].weight;
+    if (t.taskType === "deep") w *= DEEP_BONUS;
+    var s = slack(t, cfg, now);
+    if (!s) return w;
     var v = s.slack <= 0 ? (1000 + w*10 - s.slack) : (w / s.slack);
     if (t.status === "in_progress") v += w * 0.05;
     return v;
   }
   function band(t, cfg, now){
     var s = slack(t, cfg, now);
+    if (!s) return "someday";
     if (s.daysUntil < 0) return "overdue";
     if (s.slack <= 0) return "tight";
     if (s.slack <= 1) return "soon";
+    if (s.daysUntil <= 2 && (t.priority === "critical" || t.priority === "high")) return "soon";
     return "plan";
   }
+  function isDeferred(t){ return !!t.deferUntil && t.deferUntil > todayStr(); }
+  function followUpDue(t){ return t.status === "waiting" && !!t.followUpDate && t.followUpDate <= todayStr(); }
+  function isActive(t){
+    if (t.status === "done") return false;
+    if (isDeferred(t)) return false;
+    if (t.status === "waiting" && !followUpDue(t)) return false;
+    return true;
+  }
+  function childrenOf(id){ return state.todos.filter(function(t){ return t.parentId === id; }); }
 
   // ---------- mapping ----------
   function rowToTodo(r){
-    return { id: r.id, title: r.title, dueDate: r.due_date, estimatedMinutes: r.estimated_minutes,
+    return { id: r.id, title: r.title, dueDate: r.due_date || null, estimatedMinutes: r.estimated_minutes,
              priority: r.priority, notes: r.notes || "", status: r.status,
+             area: r.area || "Sonstiges", deferUntil: r.defer_until || null,
+             waitingOn: r.waiting_on || "", followUpDate: r.follow_up_date || null,
+             parentId: r.parent_id || null, recurrence: r.recurrence || null,
+             taskType: r.task_type || "shallow", applicationId: r.application_id || null,
+             scheduledStart: r.scheduled_start || null, scheduledEnd: r.scheduled_end || null,
              createdAt: r.created_at, completedAt: r.completed_at };
   }
   function todoToRow(t){
-    return { id: t.id, title: t.title, due_date: t.dueDate, estimated_minutes: t.estimatedMinutes,
-             priority: t.priority, notes: t.notes || "", status: t.status, completed_at: t.completedAt };
+    return { id: t.id, title: t.title, due_date: t.dueDate || null, estimated_minutes: t.estimatedMinutes,
+             priority: t.priority, notes: t.notes || "", status: t.status,
+             area: t.area || "Sonstiges", defer_until: t.deferUntil || null,
+             waiting_on: t.waitingOn || "", follow_up_date: t.followUpDate || null,
+             parent_id: t.parentId || null, recurrence: t.recurrence || null,
+             task_type: t.taskType || "shallow", application_id: t.applicationId || null,
+             completed_at: t.completedAt };
+  }
+  var FIELD_MAP = {
+    title:"title", dueDate:"due_date", estimatedMinutes:"estimated_minutes", priority:"priority",
+    notes:"notes", status:"status", area:"area", deferUntil:"defer_until", waitingOn:"waiting_on",
+    followUpDate:"follow_up_date", parentId:"parent_id", recurrence:"recurrence",
+    taskType:"task_type", applicationId:"application_id", completedAt:"completed_at"
+  };
+  function rowToApp(r){
+    return { id: r.id, company: r.company, roleTitle: r.role_title || "", track: r.track,
+             stage: r.stage, followUpDate: r.follow_up_date || null, nextStep: r.next_step || "" };
+  }
+  function rowToSettings(r){
+    return {
+      dailyCapacityMinutes: r.daily_capacity_minutes,
+      deepBlockMinutes:    r.deep_block_minutes    != null ? r.deep_block_minutes    : DEFAULTS.deepBlockMinutes,
+      shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULTS.shallowBlockMinutes,
+      adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULTS.adminSlotMinutes,
+      freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULTS.freeWeekday,
+      followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULTS.followUpAfterDays
+    };
   }
 
   // ---------- status ----------
@@ -422,31 +546,31 @@
   function dbInsert(t){ return sb.from("todos").insert(todoToRow(t)).then(function(r){ if (r.error) throw r.error; }); }
   function dbUpdate(id, patch){
     var row = {};
-    if ("title" in patch) row.title = patch.title;
-    if ("dueDate" in patch) row.due_date = patch.dueDate;
-    if ("estimatedMinutes" in patch) row.estimated_minutes = patch.estimatedMinutes;
-    if ("priority" in patch) row.priority = patch.priority;
-    if ("notes" in patch) row.notes = patch.notes;
-    if ("status" in patch) row.status = patch.status;
-    if ("completedAt" in patch) row.completed_at = patch.completedAt;
+    Object.keys(FIELD_MAP).forEach(function(k){ if (k in patch) row[FIELD_MAP[k]] = patch[k]; });
     return sb.from("todos").update(row).eq("id", id).then(function(r){ if (r.error) throw r.error; });
   }
   function dbDelete(id){ return sb.from("todos").delete().eq("id", id).then(function(r){ if (r.error) throw r.error; }); }
   function dbSettings(cfg){
-    return sb.from("settings").upsert({ user_id: currentUser.id, daily_capacity_minutes: cfg.dailyCapacityMinutes })
-             .then(function(r){ if (r.error) throw r.error; });
+    return sb.from("settings").upsert({
+      user_id: currentUser.id, daily_capacity_minutes: cfg.dailyCapacityMinutes,
+      deep_block_minutes: cfg.deepBlockMinutes, shallow_block_minutes: cfg.shallowBlockMinutes,
+      admin_slot_minutes: cfg.adminSlotMinutes, free_weekday: cfg.freeWeekday,
+      follow_up_after_days: cfg.followUpAfterDays
+    }).then(function(r){ if (r.error) throw r.error; });
   }
 
   function loadData(){
     setStatus("saving");
     Promise.all([
       sb.from("todos").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: true }),
-      sb.from("settings").select("*").eq("user_id", currentUser.id).maybeSingle()
+      sb.from("settings").select("*").eq("user_id", currentUser.id).maybeSingle(),
+      sb.from("applications").select("*").eq("user_id", currentUser.id)
     ]).then(function(res){
       if (res[0].error) throw res[0].error;
       state.todos = (res[0].data || []).map(rowToTodo);
-      if (res[1].data) state.settings = { dailyCapacityMinutes: res[1].data.daily_capacity_minutes };
-      else { state.settings = { dailyCapacityMinutes: 180 }; dbSettings(state.settings).catch(function(){}); }
+      state.applications = res[2].error ? [] : (res[2].data || []).map(rowToApp);
+      if (res[1].data) state.settings = rowToSettings(res[1].data);
+      else { state.settings = Object.assign({}, DEFAULTS); dbSettings(state.settings).catch(function(){}); }
       setStatus("synced");
       render();
     }).catch(function(e){ console.error(e); setStatus("error"); });
@@ -464,13 +588,21 @@
         }
         render();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: "user_id=eq." + currentUser.id }, function(p){
+        if (p.eventType === "DELETE") state.applications = state.applications.filter(function(a){ return a.id !== p.old.id; });
+        else {
+          var a = rowToApp(p.new);
+          var i = state.applications.findIndex(function(x){ return x.id === a.id; });
+          if (i >= 0) state.applications[i] = a; else state.applications.push(a);
+        }
+        render();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "settings", filter: "user_id=eq." + currentUser.id }, function(p){
-        if (p.eventType !== "DELETE" && p.new) { state.settings = { dailyCapacityMinutes: p.new.daily_capacity_minutes }; render(); }
+        if (p.eventType !== "DELETE" && p.new) { state.settings = rowToSettings(p.new); render(); }
       })
       .subscribe();
   }
 
-  // ---------- screens ----------
   function show(which){
     document.getElementById("setupScreen").style.display = which === "setup" ? "flex" : "none";
     document.getElementById("authScreen").style.display  = which === "auth"  ? "flex" : "none";
@@ -492,12 +624,23 @@
     var tag = "";
     if (b === "overdue" || b === "tight") tag = '<span class="tag tag-critical">' + (b === "overdue" ? "überfällig" : "kein Puffer") + '</span>';
     else if (b === "soon") tag = '<span class="tag tag-warning">knapp</span>';
+    if (followUpDue(t)) tag += '<span class="tag tag-critical">nachfassen</span>';
+    var kids = childrenOf(t.id);
+    var mins = kids.length ? kids.reduce(function(s,k){ return s + k.estimatedMinutes; }, 0) : t.estimatedMinutes;
+
     var h = '<div class="item" data-band="' + b + '" data-status="' + t.status + '" data-id="' + t.id + '">';
     h += '<button class="check" data-act="cycle" data-id="' + t.id + '" title="' + (t.status === "open" ? "Als „In Arbeit“ markieren" : "Als erledigt markieren") + '">✓</button>';
     h += '<div class="item-body">';
-    h += '<div class="item-title">' + esc(t.title) + '</div>';
+    h += '<div class="item-title-row"><span class="adot" data-area="' + esc(t.area) + '" title="' + esc(t.area) + '"></span>' +
+         '<span class="item-title">' + esc(t.title) + '</span></div>';
     if (t.notes) h += '<div class="item-notes">' + esc(t.notes) + '</div>';
-    h += '<div class="item-meta"><span class="mono">' + fmtMin(t.estimatedMinutes) + '</span>';
+    if (t.status === "waiting" && t.waitingOn) h += '<div class="sub-mini">⏳ ' + esc(t.waitingOn) + '</div>';
+    if (kids.length) {
+      var dk = kids.filter(function(k){ return k.status === "done"; }).length;
+      h += '<div class="sub-mini">' + dk + '/' + kids.length + ' Teilschritte</div>';
+    }
+    h += '<div class="item-meta"><span class="mono">' + fmtMin(mins) + '</span>';
+    if (t.taskType === "deep") h += '<span class="tag-focus">Fokus</span>';
     if (t.priority === "high" || t.priority === "critical") h += '<span class="tag tag-plan">' + PRIORITY[t.priority].label + '</span>';
     h += tag + '</div></div>';
     var isC = confirmDeleteId === t.id;
@@ -506,40 +649,66 @@
     return h;
   }
 
+  function groupHtml(name, tone, list, cfg, now){
+    var mins = list.reduce(function(s,t){
+      var k = childrenOf(t.id);
+      return s + (k.length ? k.reduce(function(x,c){ return x + c.estimatedMinutes; }, 0) : t.estimatedMinutes);
+    }, 0);
+    return '<div class="group"><div class="group-head" data-tone="' + tone + '">' +
+           '<span class="group-name">' + esc(name) + '</span><span class="group-sum mono">' + fmtMin(mins) + '</span></div>' +
+           '<div class="items">' + list.map(function(t){ return itemHtml(t, cfg, now); }).join("") + '</div></div>';
+  }
+
   function render(){
     var now = new Date(), today = startOfToday(), cfg = state.settings;
-    var open = state.todos.filter(function(t){ return t.status !== "done"; });
+    var byId = {};
+    state.todos.forEach(function(t){ byId[t.id] = t; });
+
+    var open = state.todos.filter(function(t){
+      if (!isActive(t)) return false;
+      var p = t.parentId ? byId[t.parentId] : null;
+      return !p || p.status === "done";      // Teilschritte erscheinen unter der Elternaufgabe
+    });
     var done = state.todos.filter(function(t){ return t.status === "done"; })
                           .sort(function(a,b){ return (b.completedAt||"").localeCompare(a.completedAt||""); });
     var host = document.getElementById("scroll");
     var html = "";
 
+    // Faellige Bewerbungs-Nachfassungen zuerst — genau das geht sonst unter.
+    var dueApps = state.applications.filter(function(a){
+      return a.followUpDate && a.followUpDate <= todayStr() &&
+             ["abgeschickt","nachgefasst","gespraech"].indexOf(a.stage) >= 0;
+    });
+    if (dueApps.length) {
+      html += '<div class="pipe-alert"><b>Nachfassen fällig (' + dueApps.length + ')</b>' +
+              dueApps.map(function(a){
+                return '<span class="who">' + esc(a.company) + (a.roleTitle ? " · " + esc(a.roleTitle) : "") + '</span>';
+              }).join("") + '</div>';
+    }
+
     if (open.length === 0) {
       html += '<div class="empty"><h2>Alles frei</h2><p>Trag oben ein, was ansteht — sortiert wird automatisch.</p></div>';
     } else {
-      var buckets = {}, overdue = [];
+      var byScore = function(a,b){ return score(b,cfg,now) - score(a,cfg,now); };
+      var overdue = [], someday = [], buckets = {};
       open.forEach(function(t){
-        if (endOfDayFromStr(t.dueDate) < now) overdue.push(t);
+        if (!t.dueDate) someday.push(t);                        // ohne Frist: eigene Gruppe am Ende
+        else if (endOfDayFromStr(t.dueDate) < now) overdue.push(t);
         else (buckets[t.dueDate] = buckets[t.dueDate] || []).push(t);
       });
-      var byScore = function(a,b){ return score(b,cfg,now) - score(a,cfg,now); };
 
-      if (overdue.length) {
-        overdue.sort(byScore);
-        var oMin = overdue.reduce(function(s,t){ return s + t.estimatedMinutes; }, 0);
-        html += '<div class="group"><div class="group-head" data-tone="overdue">' +
-                '<span class="group-name">Überfällig</span><span class="group-sum mono">' + fmtMin(oMin) + '</span></div>' +
-                '<div class="items">' + overdue.map(function(t){ return itemHtml(t,cfg,now); }).join("") + '</div></div>';
-      }
+      if (overdue.length) html += groupHtml("Überfällig", "overdue", overdue.sort(byScore), cfg, now);
       Object.keys(buckets).sort().forEach(function(dateStr){
-        var list = buckets[dateStr].sort(byScore);
         var lab = groupLabel(dateStr, today);
-        var mins = list.reduce(function(s,t){ return s + t.estimatedMinutes; }, 0);
-        html += '<div class="group"><div class="group-head" data-tone="' + lab.tone + '">' +
-                '<span class="group-name">' + esc(lab.name) + '</span><span class="group-sum mono">' + fmtMin(mins) + '</span></div>' +
-                '<div class="items">' + list.map(function(t){ return itemHtml(t,cfg,now); }).join("") + '</div></div>';
+        html += groupHtml(lab.name, lab.tone, buckets[dateStr].sort(byScore), cfg, now);
       });
+      if (someday.length) html += groupHtml("Ohne Frist", "", someday.sort(byScore), cfg, now);
     }
+
+    var hidden = state.todos.filter(function(t){
+      return t.status !== "done" && (isDeferred(t) || (t.status === "waiting" && !followUpDue(t)));
+    }).length;
+    if (hidden) html += '<div class="pipe-line">' + hidden + ' Aufgabe(n) ausgeblendet (wartend oder später) — in der großen Ansicht sichtbar.</div>';
 
     if (done.length) {
       html += '<button class="done-toggle" data-act="toggle-done">' + (showDone ? "▾" : "▸") + " Erledigt (" + done.length + ")</button>";
@@ -554,25 +723,44 @@
   }
 
   // ---------- mutations ----------
+  function nextRecurrence(dateStr, rec){
+    var d = dateStr ? new Date(dateStr + "T00:00:00") : startOfToday();
+    if (rec === "daily") d.setDate(d.getDate() + 1);
+    else if (rec === "weekly") d.setDate(d.getDate() + 7);
+    else if (rec === "monthly") d.setMonth(d.getMonth() + 1);
+    else if (rec === "weekdays") { do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6); }
+    else return null;
+    return toDateStr(d);
+  }
   function addTodo(d){
-    var t = { id: uid(), title: d.title, dueDate: d.dueDate, estimatedMinutes: d.estimatedMinutes,
-              priority: d.priority, notes: "", status: "open",
-              createdAt: new Date().toISOString(), completedAt: null };
+    var t = { id: uid(), title: d.title, dueDate: d.dueDate || null, estimatedMinutes: d.estimatedMinutes,
+              priority: d.priority, notes: d.notes || "", status: "open",
+              area: d.area || "Sonstiges", deferUntil: null, waitingOn: "", followUpDate: null,
+              parentId: null, recurrence: d.recurrence || null, taskType: d.taskType || "shallow",
+              applicationId: null, createdAt: new Date().toISOString(), completedAt: null };
     state.todos.push(t); render();
     persist(function(){ return dbInsert(t); });
   }
   function updateTodo(id, patch){
     var t = state.todos.find(function(x){ return x.id === id; });
     if (!t) return;
+    var wasDone = t.status === "done";
     Object.assign(t, patch);
     if (patch.status === "done" && !t.completedAt) t.completedAt = new Date().toISOString();
     if (patch.status && patch.status !== "done") t.completedAt = null;
     render();
     var full = Object.assign({}, patch, { completedAt: t.completedAt });
     persist(function(){ return dbUpdate(id, full); });
+    if (!wasDone && patch.status === "done" && t.recurrence) {
+      var next = nextRecurrence(t.dueDate, t.recurrence);
+      if (next) addTodo({ title: t.title, dueDate: next, estimatedMinutes: t.estimatedMinutes,
+                          priority: t.priority, notes: t.notes, area: t.area,
+                          recurrence: t.recurrence, taskType: t.taskType });
+    }
   }
   function removeTodo(id){
-    state.todos = state.todos.filter(function(x){ return x.id !== id; });
+    var kids = childrenOf(id).map(function(k){ return k.id; });
+    state.todos = state.todos.filter(function(x){ return x.id !== id && kids.indexOf(x.id) === -1; });
     render();
     persist(function(){ return dbDelete(id); });
   }
@@ -584,7 +772,13 @@
     var act = el.getAttribute("data-act"), id = el.getAttribute("data-id");
     if (act === "cycle") {
       var t = state.todos.find(function(x){ return x.id === id; });
-      if (t) updateTodo(id, { status: t.status === "open" ? "in_progress" : "done" });
+      if (!t) return;
+      var next = t.status === "open" ? "in_progress"
+               : t.status === "in_progress" ? "done"
+               : t.status === "waiting" ? "in_progress" : "open";
+      var patch = { status: next };
+      if (next !== "waiting") { patch.waitingOn = ""; patch.followUpDate = null; }
+      updateTodo(id, patch);
     }
     else if (act === "del") { confirmDeleteId = id; render(); }
     else if (act === "del-yes") { confirmDeleteId = null; removeTodo(id); }
@@ -596,21 +790,29 @@
     if (!e.target.closest("[data-act]") && !e.target.closest(".del") && confirmDeleteId) { confirmDeleteId = null; render(); }
   }, true);
 
-  document.getElementById("cPrio").addEventListener("click", function(e){
-    var b = e.target.closest("button"); if (!b) return;
-    Array.prototype.forEach.call(this.children, function(x){ x.removeAttribute("aria-pressed"); });
-    b.setAttribute("aria-pressed", "true");
+  ["cPrio","cType"].forEach(function(gid){
+    document.getElementById(gid).addEventListener("click", function(e){
+      var b = e.target.closest("button"); if (!b) return;
+      Array.prototype.forEach.call(this.children, function(x){ x.removeAttribute("aria-pressed"); });
+      b.setAttribute("aria-pressed", "true");
+    });
   });
 
   document.getElementById("addForm").addEventListener("submit", function(e){
     e.preventDefault();
     var title = document.getElementById("cTitle").value.trim();
-    var due = document.getElementById("cDue").value || todayStr();
+    if (!title) { document.getElementById("cTitle").focus(); return; }
     var hours = parseFloat(document.getElementById("cHours").value) || 0.5;
     var pb = document.querySelector("#cPrio [aria-pressed='true']");
-    if (!title) { document.getElementById("cTitle").focus(); return; }
-    addTodo({ title: title, dueDate: due, estimatedMinutes: Math.round(hours*60),
-              priority: pb ? pb.getAttribute("data-value") : "medium" });
+    var tb = document.querySelector("#cType [aria-pressed='true']");
+    addTodo({
+      title: title,
+      dueDate: document.getElementById("cDue").value || null,   // leer heisst: ohne Frist
+      estimatedMinutes: Math.round(hours*60),
+      priority: pb ? pb.getAttribute("data-value") : "medium",
+      taskType: tb ? tb.getAttribute("data-value") : "shallow",
+      area: document.getElementById("cArea").value
+    });
     document.getElementById("cTitle").value = "";
     document.getElementById("cTitle").focus();
   });
@@ -626,7 +828,10 @@
   // settings sheet
   var sheet = document.getElementById("sheetBack");
   document.getElementById("openSettings").addEventListener("click", function(){
-    document.getElementById("capInput").value = state.settings.dailyCapacityMinutes/60;
+    document.getElementById("deepIn").value    = state.settings.deepBlockMinutes / 60;
+    document.getElementById("shallowIn").value = state.settings.shallowBlockMinutes / 60;
+    document.getElementById("adminIn").value   = state.settings.adminSlotMinutes;
+    document.getElementById("freeIn").value    = String(state.settings.freeWeekday);
     document.getElementById("newPw").value = "";
     document.getElementById("sheetMsg").textContent = "";
     document.getElementById("whoAmI").textContent = currentUser ? "Angemeldet als " + currentUser.email : "";
@@ -635,20 +840,27 @@
   document.getElementById("sheetCancel").addEventListener("click", function(){ sheet.style.display = "none"; });
   sheet.addEventListener("click", function(e){ if (e.target === sheet) sheet.style.display = "none"; });
   document.getElementById("sheetSave").addEventListener("click", function(){
-    var h = parseFloat(document.getElementById("capInput").value);
-    var pw = document.getElementById("newPw").value;
     var msg = document.getElementById("sheetMsg");
-    if (h && h > 0 && Math.round(h*60) !== state.settings.dailyCapacityMinutes) {
-      state.settings.dailyCapacityMinutes = Math.round(h*60);
-      render();
-      persist(function(){ return dbSettings(state.settings); });
-    }
+    var deep = parseFloat(document.getElementById("deepIn").value);
+    var shal = parseFloat(document.getElementById("shallowIn").value);
+    var adm  = parseInt(document.getElementById("adminIn").value, 10);
+    var free = document.getElementById("freeIn").value;
+    var cfg = state.settings;
+    if (deep > 0) cfg.deepBlockMinutes = Math.round(deep*60);
+    if (shal > 0) cfg.shallowBlockMinutes = Math.round(shal*60);
+    if (adm >= 0) cfg.adminSlotMinutes = adm;
+    cfg.freeWeekday = free === "" ? null : parseInt(free, 10);
+    cfg.dailyCapacityMinutes = dailyCapacity(cfg);
+    render();
+    persist(function(){ return dbSettings(cfg); });
+
+    var pw = document.getElementById("newPw").value;
     if (pw) {
       if (pw.length < 6) { msg.textContent = "Passwort braucht mindestens 6 Zeichen."; return; }
       msg.textContent = "Setze Passwort…";
       sb.auth.updateUser({ password: pw }).then(function(r){
         if (r.error) throw r.error;
-        msg.textContent = "Passwort gesetzt. Ab jetzt kein Magic Link mehr nötig.";
+        msg.textContent = "Passwort gesetzt.";
         document.getElementById("newPw").value = "";
       }).catch(function(err){ msg.textContent = "Fehler: " + (err.message || "unbekannt"); });
     } else {
@@ -701,8 +913,7 @@
   });
 
   // ---------- boot ----------
-  document.getElementById("cDue").value = todayStr();
-  document.getElementById("cDue").min = todayStr();
+  document.getElementById("cDue").min = todayStr();   // kein Vorgabedatum mehr: leer heisst ohne Frist
   setAuthMode("password");
 
   if (typeof window.supabase === "undefined") {
@@ -711,14 +922,12 @@
     return;
   }
   // implicit flow: the magic link carries the session in the URL hash, so it
-  // works in whichever browser the mail is opened in. (The PKCE default only
-  // works in the exact context that requested the link.) No custom storageKey —
+  // works in whichever browser the mail is opened in. No custom storageKey —
   // index.html and menu.html must share one session on this origin.
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
   });
 
-  // Surface auth errors that come back in the URL instead of failing silently.
   (function(){
     var raw = (location.hash || "").replace(/^#/, "") + "&" + (location.search || "").replace(/^\?/, "");
     var p = new URLSearchParams(raw);
@@ -743,6 +952,7 @@
       setTimeout(function(){ document.getElementById("authEmail").focus(); }, 60);
     }
   });
+
 })();
 </script>
 </body>
