@@ -1349,6 +1349,10 @@
   // ---------- Rueckwaertsplanung ----------
   // Eine Aufgabe soll nicht am Stichtag fertig werden, sondern davor. Der Puffer
   // waechst mit dem Vorlauf: ein Viertel der verbleibenden Zeit, 1 bis 7 Tage.
+  // Mindestlaenge eines Arbeitsstuecks: unter drei Stunden Gesamtaufwand
+  // mindestens 30 Minuten am Stueck, ab drei Stunden mindestens 60.
+  function minChunk(taskMinutes){ return taskMinutes >= 180 ? 60 : 30; }
+
   function bufferDays(daysUntilDue){
     if (daysUntilDue <= 1) return 0;
     // Kein Deckel nach oben: bei viel Vorlauf darf der Zielpuffer beliebig
@@ -1415,7 +1419,17 @@
           if (b.maxItem && todo.estimatedMinutes > b.maxItem) continue;
           var free = b.cap - b.items.reduce(function(sum, it){ return sum + it.minutes; }, 0);
           if (free <= 0) continue;
+          // Nicht kleinteilig zerhacken: ein Stueck muss die Mindestlaenge
+          // erreichen — ausser es ist der letzte Rest der Aufgabe.
+          var mc = minChunk(todo.estimatedMinutes);
+          if (free < Math.min(mc, remaining)) continue;
           var alloc = Math.min(free, remaining);
+          // Auch der Rest muss gross genug bleiben, sonst entsteht ein Schnipsel.
+          var restMin = remaining - alloc;
+          if (restMin > 0 && restMin < mc) {
+            alloc = remaining - mc;
+            if (alloc < mc) continue;
+          }
           b.items.push({ todo: todo, minutes: alloc });
           remaining -= alloc;
           lastDay = di;
