@@ -639,10 +639,20 @@
     var days = [];
     for (var i = 0; i < HORIZON; i++) {
       var date = addDays(today, i);
+      var istHeute = date.getTime() === today.getTime();
+      var kap = function(startHHMM, capMin){
+        if (!istHeute) return capMin;
+        var start = new Date(date), t = startHHMM.split(":");
+        start.setHours(parseInt(t[0],10), parseInt(t[1],10), 0, 0);
+        var ende = new Date(start.getTime() + capMin * 60000);
+        if (now >= ende) return 0;
+        if (now <= start) return capMin;
+        return Math.max(0, Math.round((ende - now) / 60000));
+      };
       days.push({ date: date, free: isFreeDay(date, cfg), blocks: isFreeDay(date, cfg) ? [] : [
-        { cap: cfg.deepBlockMinutes,    accepts: ["deep"],           used: 0, order: { deep: 0 } },
-        { cap: cfg.shallowBlockMinutes, accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
-        { cap: cfg.adminSlotMinutes,    accepts: ["shallow"],        used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
+        { cap: kap("09:30", cfg.deepBlockMinutes),    accepts: ["deep"],           used: 0, order: { deep: 0 } },
+        { cap: kap("17:00", cfg.shallowBlockMinutes), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
+        { cap: kap("19:30", cfg.adminSlotMinutes),    accepts: ["shallow"],        used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
       ]});
     }
     var ordered = list.slice().sort(function(a, b){
