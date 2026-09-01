@@ -345,7 +345,7 @@
 <!-- APP -->
 <div id="appRoot" style="display:none; flex:1; flex-direction:column; min-height:0;">
   <div class="composer">
-    <form id="addForm">
+    <form id="addForm" novalidate>
       <div class="composer-row">
         <input type="text" id="cTitle" placeholder="Was steht an?" maxlength="140" autocomplete="off" />
         <button type="submit" class="add-btn" id="cAdd" aria-label="To-Do hinzufügen">+</button>
@@ -969,17 +969,24 @@
     e.preventDefault();
     var title = document.getElementById("cTitle").value.trim();
     if (!title) { document.getElementById("cTitle").focus(); return; }
-    var hours = parseFloat(document.getElementById("cHours").value) || 0.5;
+    var hours = parseFloat(document.getElementById("cHours").value);
+    if (!(hours > 0)) hours = 0.5;                    // leer oder unsinnig: Vorgabe
+    // Beide Datumsfelder sind freiwillig. Eine unvollstaendige Eingabe liefert
+    // ohnehin einen leeren Wert — die wird hier still als "kein Datum" gewertet.
+    var datum = function(id){
+      var v = document.getElementById(id).value;
+      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    };
     var pb = document.querySelector("#cPrio [aria-pressed='true']");
     var tb = document.querySelector("#cType [aria-pressed='true']");
     addTodo({
       title: title,
-      dueDate: document.getElementById("cDue").value || null,   // leer heisst: ohne Frist
+      dueDate: datum("cDue"),                                      // leer heisst: ohne Frist
       estimatedMinutes: Math.round(hours*60),
       priority: pb ? pb.getAttribute("data-value") : "medium",
       taskType: tb ? tb.getAttribute("data-value") : "shallow",
       area: document.getElementById("cArea").value,
-      deferUntil: document.getElementById("cDefer").value || null,  // leer heisst: ab sofort
+      deferUntil: datum("cDefer"),                                 // leer heisst: ab sofort
       outside: document.getElementById("cOutside").checked
     });
     document.getElementById("cTitle").value = "";

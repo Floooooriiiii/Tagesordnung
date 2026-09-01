@@ -645,7 +645,7 @@
   <section class="card quickadd">
     <h2>Neue Aufgabe</h2>
     <div class="hint">Fälligkeit darf leer bleiben — dann landet die Aufgabe unten statt eine erfundene Frist zu bekommen.</div>
-    <form id="addForm">
+    <form id="addForm" novalidate>
       <div class="field-grid-4">
         <div class="field">
           <label for="f-title">Titel</label>
@@ -2101,19 +2101,25 @@
   document.getElementById("addForm").addEventListener("submit", function(e){
     e.preventDefault();
     var title = document.getElementById("f-title").value.trim();
+    if (!title) { document.getElementById("f-title").focus(); return; }
     var hours = parseFloat(document.getElementById("f-hours").value);
-    if (!title || !hours || hours <= 0) return;
+    if (!(hours > 0)) { document.getElementById("f-hours").focus(); return; }
+    // Beide Datumsfelder sind freiwillig; eine halbe Eingabe gilt als leer.
+    var datum = function(id){
+      var v = document.getElementById(id).value;
+      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    };
     var prioBtn = document.querySelector("#prioritySegment [aria-pressed='true']");
     var typeBtn = document.querySelector("#typeSegment [aria-pressed='true']");
     addTodo({
       title: title,
-      dueDate: document.getElementById("f-due").value || null,
+      dueDate: datum("f-due"),
       estimatedMinutes: Math.round(hours * 60),
       priority: prioBtn ? prioBtn.getAttribute("data-value") : "medium",
       taskType: typeBtn ? typeBtn.getAttribute("data-value") : "shallow",
       area: document.getElementById("f-area").value,
       notes: document.getElementById("f-notes").value.trim(),
-      deferUntil: document.getElementById("f-defer").value || null,
+      deferUntil: datum("f-defer"),
       outside: document.getElementById("f-outside").checked,
       recurrence: document.getElementById("f-recur").value || null,
       parentId: document.getElementById("f-parent").value || null
