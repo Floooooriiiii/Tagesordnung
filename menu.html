@@ -499,7 +499,9 @@
   function followUpDue(t){ return t.status === "waiting" && !!t.followUpDate && t.followUpDate <= todayStr(); }
   function isActive(t){
     if (t.status === "done") return false;
-    if (isDeferred(t)) return false;
+    // Zurueckgestellte Aufgaben werden NICHT ausgeblendet: buildPlan faengt
+    // fuer sie erst am "Fruehestens ab"-Tag an. Wer sie hier aussortiert,
+    // zeigt eine andere Liste als der Kalender.
     if (t.status === "waiting" && !followUpDue(t)) return false;
     return true;
   }
@@ -658,7 +660,7 @@
         return Math.max(0, Math.round((ende - now) / 60000));
       };
       days.push({ date: date, free: isFreeDay(date, cfg), blocks: isFreeDay(date, cfg) ? [] : [
-        { cap: kap("09:30", cfg.deepBlockMinutes),    accepts: ["deep"],           used: 0, order: { deep: 0 } },
+        { cap: kap("09:30", cfg.deepBlockMinutes),    accepts: ["deep","shallow"], used: 0, order: { deep: 0, shallow: 5 } },
         { cap: kap("17:00", cfg.shallowBlockMinutes), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
         { cap: kap("19:30", cfg.adminSlotMinutes),    accepts: ["shallow"],        used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
       ]});
@@ -730,6 +732,19 @@
       info = buildPlan(list, cfg, now, overrides);
     }
     return info;
+  }
+
+  // Tagindex aus dem, was der Planer tatsaechlich in den Kalender geschrieben
+  // hat. Die eigene Rechnung unten ist nur der Notnagel, wenn dazu nichts
+  // vorliegt (Mac aus, noch nie geplant) — sonst zeigt die Leiste etwas
+  // anderes an, als im Kalender steht.
+  function plannerDayIndex(t, today){
+    if (!t.scheduledStart) return null;
+    var d = new Date(t.scheduledStart);
+    if (isNaN(d.getTime())) return null;
+    var tag = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var di = Math.round((tag - today) / 86400000);
+    return (di >= 0 && di < 21) ? di : null;
   }
 
   // ---------- render ----------
@@ -826,9 +841,13 @@
       var overdue = [], unplaced = [], buckets = {};
       open.forEach(function(t){
         if (t.dueDate && endOfDayFromStr(t.dueDate) < now) { overdue.push(t); return; }
-        var pi = planInfo[t.id];
-        if (!pi || pi.first === null) unplaced.push(t);
-        else (buckets[pi.first] = buckets[pi.first] || []).push(t);
+        var di = plannerDayIndex(t, today);
+        if (di === null) {
+          var pi = planInfo[t.id];
+          di = (!pi || pi.first === null) ? null : pi.first;
+        }
+        if (di === null) unplaced.push(t);
+        else (buckets[di] = buckets[di] || []).push(t);
       });
 
       if (overdue.length) html += groupHtml("Überfällig", "overdue", overdue.sort(byScore), cfg, now);
@@ -843,7 +862,7 @@
     }
 
     var hidden = state.todos.filter(function(t){
-      return t.status !== "done" && (isDeferred(t) || (t.status === "waiting" && !followUpDue(t)));
+      return t.status !== "done" && t.status === "waiting" && !followUpDue(t);
     }).length;
     if (hidden) html += '<div class="pipe-line">' + hidden + ' Aufgabe(n) ausgeblendet (wartend oder später) — in der großen Ansicht sichtbar.</div>';
 
