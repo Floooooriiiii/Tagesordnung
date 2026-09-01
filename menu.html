@@ -300,6 +300,11 @@
   /* Zwei Datumsfelder nebeneinander sind ohne Beschriftung nicht zu
      unterscheiden — deshalb je ein kurzes Wort davor. */
   .composer-detail .mini-label { flex: none; font-size: 11px; color: var(--ink-muted); }
+  .composer-detail .haus-check {
+    flex: none; display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--ink-muted); cursor: pointer; white-space: nowrap;
+  }
+  .composer-detail .haus-check input { cursor: pointer; margin: 0; accent-color: var(--accent); }
 
   .pipe-alert {
     margin: 0 0 8px; padding: 8px 10px; border-radius: var(--radius-s);
@@ -363,6 +368,9 @@
           <button type="button" data-value="high" title="Hoch">H</button>
           <button type="button" data-value="critical" title="Kritisch">!</button>
         </div>
+        <label class="haus-check" title="Für diese Aufgabe musst du aus dem Haus — der Planer legt sie an den Gym-Block">
+          <input type="checkbox" id="cOutside" /> außer Haus
+        </label>
         <div class="prio-seg focus-seg" id="cType" role="group" aria-label="Art der Arbeit">
           <button type="button" data-value="deep" title="Fokusarbeit — darf in Block 1 am Vormittag">Fokus</button>
           <button type="button" data-value="shallow" aria-pressed="true" title="Nebenbei — Block 2 und Kleinkram">Nebenbei</button>
@@ -516,6 +524,7 @@
              parentId: r.parent_id || null, recurrence: r.recurrence || null,
              taskType: r.task_type || "shallow", applicationId: r.application_id || null,
              scheduledStart: r.scheduled_start || null, scheduledEnd: r.scheduled_end || null,
+             outside: !!r.outside,
              createdAt: r.created_at, completedAt: r.completed_at };
   }
   function todoToRow(t){
@@ -525,9 +534,10 @@
              waiting_on: t.waitingOn || "", follow_up_date: t.followUpDate || null,
              parent_id: t.parentId || null, recurrence: t.recurrence || null,
              task_type: t.taskType || "shallow", application_id: t.applicationId || null,
-             completed_at: t.completedAt };
+             outside: !!t.outside, completed_at: t.completedAt };
   }
   var FIELD_MAP = {
+    outside: "outside",
     title:"title", dueDate:"due_date", estimatedMinutes:"estimated_minutes", priority:"priority",
     notes:"notes", status:"status", area:"area", deferUntil:"defer_until", waitingOn:"waiting_on",
     followUpDate:"follow_up_date", parentId:"parent_id", recurrence:"recurrence",
@@ -891,7 +901,8 @@
   function addTodo(d){
     var t = { id: uid(), title: d.title, dueDate: d.dueDate || null, estimatedMinutes: d.estimatedMinutes,
               priority: d.priority, notes: d.notes || "", status: "open",
-              area: d.area || "Sonstiges", deferUntil: d.deferUntil || null, waitingOn: "", followUpDate: null,
+              area: d.area || "Sonstiges", deferUntil: d.deferUntil || null, outside: !!d.outside,
+              waitingOn: "", followUpDate: null,
               parentId: null, recurrence: d.recurrence || null, taskType: d.taskType || "shallow",
               applicationId: null, createdAt: new Date().toISOString(), completedAt: null };
     state.todos.push(t); render();
@@ -968,10 +979,12 @@
       priority: pb ? pb.getAttribute("data-value") : "medium",
       taskType: tb ? tb.getAttribute("data-value") : "shallow",
       area: document.getElementById("cArea").value,
-      deferUntil: document.getElementById("cDefer").value || null   // leer heisst: ab sofort
+      deferUntil: document.getElementById("cDefer").value || null,  // leer heisst: ab sofort
+      outside: document.getElementById("cOutside").checked
     });
     document.getElementById("cTitle").value = "";
     document.getElementById("cDefer").value = "";
+    document.getElementById("cOutside").checked = false;
     document.getElementById("cTitle").focus();
   });
 

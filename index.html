@@ -687,6 +687,11 @@
           </div>
         </div>
       </div>
+      <style>
+        .haus-check { display:flex; align-items:center; gap:6px; font-weight:400;
+                      text-transform:none; letter-spacing:0; cursor:pointer; }
+        .haus-check input { cursor:pointer; margin:0; accent-color:var(--accent); }
+      </style>
       <details style="margin-top:12px;">
         <summary style="cursor:pointer;font-size:13px;color:var(--ink-muted);font-weight:600;">Mehr Optionen</summary>
         <div class="field-grid-4" style="margin-top:10px;">
@@ -697,6 +702,12 @@
           <div class="field">
             <label for="f-defer">Frühestens ab</label>
             <input type="date" id="f-defer" />
+          </div>
+          <div class="field">
+            <label for="f-outside">Außer Haus</label>
+            <label class="haus-check" title="Du musst dafür aus dem Haus — der Planer legt die Aufgabe an den Gym-Block">
+              <input type="checkbox" id="f-outside" /> an den Gym-Block legen
+            </label>
           </div>
           <div class="field">
             <label for="f-recur">Wiederholung</label>
@@ -1070,6 +1081,7 @@
       scheduledStart: r.scheduled_start || null,
       scheduledEnd: r.scheduled_end || null,
       calendarEventId: r.calendar_event_id || null,
+      outside: !!r.outside,
       createdAt: r.created_at, completedAt: r.completed_at
     };
   }
@@ -1086,6 +1098,7 @@
       recurrence: t.recurrence || null,
       task_type: t.taskType || "shallow",
       application_id: t.applicationId || null,
+      outside: !!t.outside,
       completed_at: t.completedAt
     };
   }
@@ -1094,7 +1107,8 @@
     priority: "priority", notes: "notes", status: "status", area: "area",
     deferUntil: "defer_until", waitingOn: "waiting_on", followUpDate: "follow_up_date",
     parentId: "parent_id", recurrence: "recurrence", taskType: "task_type",
-    applicationId: "application_id", completedAt: "completed_at"
+    applicationId: "application_id", completedAt: "completed_at",
+    outside: "outside"
   };
 
   function rowToApp(r){
@@ -1663,6 +1677,8 @@
         '<button type="button" data-value="shallow"' + (todo.taskType !== "deep" ? ' aria-pressed="true"' : '') + '>Nebenbei</button>' +
       '</div></div>' +
       '<div class="field"><label>Frühestens ab</label><input type="date" data-edit="deferUntil" value="' + (todo.deferUntil || "") + '" /></div>' +
+      '<div class="field"><label>Außer Haus</label><label class="haus-check">' +
+        '<input type="checkbox" data-edit-check="outside"' + (todo.outside ? " checked" : "") + ' /> an den Gym-Block legen</label></div>' +
       '<div class="field"><label>Wiederholung</label><select data-edit="recurrence">' +
         '<option value=""' + (!todo.recurrence ? " selected" : "") + '>Keine</option>';
     Object.keys(RECUR_LABEL).forEach(function(r){
@@ -2052,6 +2068,7 @@
         notes: val('[data-edit="notes"]').trim(),
         area: val('[data-edit="area"]') || "Sonstiges",
         deferUntil: val('[data-edit="deferUntil"]') || null,
+        outside: !!(card.querySelector('[data-edit-check="outside"]') || {}).checked,
         recurrence: val('[data-edit="recurrence"]') || null,
         parentId: val('[data-edit="parentId"]') || null,
         priority: prioBtn ? prioBtn.getAttribute("data-value") : "medium",
@@ -2097,6 +2114,7 @@
       area: document.getElementById("f-area").value,
       notes: document.getElementById("f-notes").value.trim(),
       deferUntil: document.getElementById("f-defer").value || null,
+      outside: document.getElementById("f-outside").checked,
       recurrence: document.getElementById("f-recur").value || null,
       parentId: document.getElementById("f-parent").value || null
     });
