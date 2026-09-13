@@ -315,6 +315,24 @@
   .status-cycle[data-status="done"] { background: var(--done-soft); color: var(--done); border-color: transparent; }
   .status-cycle:hover { transform: translateY(-1px); }
 
+  /* ---------- Abhaken widerrufen ---------- */
+  /* Schwebt 5 s lang mittig am unteren Rand, wie in menu.html. Fest
+     positioniert, weil diese Seite scrollt und keine Statuszeile hat. */
+  .undo-toast {
+    position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 40;
+    transform: translateX(-50%) translateY(8px); opacity: 0; pointer-events: none;
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+    padding: 9px 16px 9px 13px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    font-size: 13.5px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(29,36,32,0.18), 0 1px 3px rgba(29,36,32,0.10);
+    transition: opacity 0.16s ease, transform 0.16s cubic-bezier(.2,.8,.3,1.2), border-color 0.14s ease, color 0.14s ease;
+  }
+  .undo-toast[data-show="true"] { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .undo-toast:hover { border-color: var(--accent); color: var(--accent); }
+  .undo-toast:active { transform: translateX(-50%) scale(0.96); }
+  .undo-toast svg { flex: none; }
+
   .icon-tiny {
     width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-soft);
     background: var(--surface); font-size: 13px; display: inline-flex; align-items: center; justify-content: center;
@@ -821,6 +839,11 @@
     <div class="pipe-board" id="pipeBoard"></div>
   </div>
 
+  <!-- Erscheint nach dem Abhaken fuer 5 s; ein Klick holt die Aufgabe zurueck. -->
+  <button class="undo-toast" id="undoToast" type="button" data-show="false" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+    Abhaken widerrufen
+  </button>
   <footer class="foot">Als App nutzen: Safari-Teilen-Menü → „Zum Home-Bildschirm" (iPhone) bzw. „Zum Dock hinzufügen" (Mac).</footer>
 
 </div>
@@ -1639,8 +1662,14 @@
     html += '</div>';
 
     html += '<div class="todo-actions">';
-    var nextStatus = todo.status === "open" ? "in_progress" : todo.status === "in_progress" ? "done" : "open";
-    html += '<button type="button" class="status-cycle" data-status="' + todo.status + '" data-action="cycle" data-id="' + todo.id + '" title="Weiter zu: ' + STATUS_LABEL[nextStatus] + '">' + STATUS_LABEL[todo.status] + '</button>';
+    // Ein Klick genuegt: erledigt. Der fruehere Zwischenschritt "In Arbeit"
+    // ist weg (er hat die Karte nur umsortiert). Erledigte lassen sich
+    // in der Erledigt-Liste weiter zurueckholen.
+    if (todo.status === "done") {
+      html += '<button type="button" class="status-cycle" data-status="done" data-action="reopen" data-id="' + todo.id + '" title="Wieder öffnen">' + STATUS_LABEL.done + '</button>';
+    } else {
+      html += '<button type="button" class="status-cycle" data-status="' + todo.status + '" data-action="done" data-id="' + todo.id + '" title="Als erledigt markieren">✓ Abhaken</button>';
+    }
     if (todo.status !== "done") {
       html += '<button type="button" class="icon-tiny" data-action="wait" data-id="' + todo.id + '" aria-label="Wartet auf jemanden" title="Wartet auf jemanden">⏳</button>';
     }
@@ -1878,9 +1907,11 @@
     return todo;
   }
 
+  // Liefert die Kennung der Folgeaufgabe, falls das Abhaken einer
+  // wiederkehrenden Aufgabe eine neue angelegt hat — sonst null.
   function updateTodo(id, patch){
     var t = state.todos.find(function(x){ return x.id === id; });
-    if (!t) return;
+    if (!t) return null;
     var wasDone = t.status === "done";
     Object.assign(t, patch);
     if (patch.status === "done" && !t.completedAt) t.completedAt = new Date().toISOString();
@@ -1890,16 +1921,18 @@
     persist(function(){ return dbUpdateTodo(id, fullPatch); });
 
     // Wiederholung: beim Abhaken entsteht sofort die nächste Instanz.
+    var folge = null;
     if (!wasDone && patch.status === "done" && t.recurrence) {
       var next = nextRecurrence(t.dueDate, t.recurrence);
       if (next) {
-        addTodo({
+        folge = addTodo({
           title: t.title, dueDate: next, estimatedMinutes: t.estimatedMinutes,
           priority: t.priority, notes: t.notes, area: t.area,
           recurrence: t.recurrence, taskType: t.taskType, applicationId: t.applicationId
         });
       }
     }
+    return folge ? folge.id : null;
   }
 
   function deleteTodo(id){
@@ -1909,16 +1942,38 @@
     persist(function(){ return dbDeleteTodo(id); });   // Kinder gehen per ON DELETE CASCADE mit
   }
 
-  function cycleStatus(id){
+  function markDone(id){
     var t = state.todos.find(function(x){ return x.id === id; });
-    if (!t) return;
-    var next = t.status === "open" ? "in_progress"
-             : t.status === "in_progress" ? "done"
-             : t.status === "waiting" ? "in_progress" : "open";
-    var patch = { status: next };
-    if (next !== "waiting") { patch.waitingOn = ""; patch.followUpDate = null; }
-    updateTodo(id, patch);
+    if (!t || t.status === "done") return;
+    var vorher = { id: id, status: t.status, waitingOn: t.waitingOn, followUpDate: t.followUpDate };
+    vorher.folgeId = updateTodo(id, { status: "done", waitingOn: "", followUpDate: null });
+    merkeWiderruf(vorher);
   }
+
+  // ---------- Abhaken widerrufen ----------
+  // Jedes Abhaken wird 5 s lang gemerkt. Der Knopf holt das juengste zurueck;
+  // liegen noch aeltere im Fenster, bleibt er stehen, bis auch die verfallen.
+  var UNDO_MS = 5000;
+  var widerrufe = [], widerrufTimer = null;
+  function zeigeWiderruf(){
+    var jetzt = Date.now();
+    widerrufe = widerrufe.filter(function(w){ return jetzt - w.zeit < UNDO_MS; });
+    var el = document.getElementById("undoToast");
+    var sichtbar = widerrufe.length > 0;
+    el.setAttribute("data-show", sichtbar ? "true" : "false");
+    el.setAttribute("aria-hidden", sichtbar ? "false" : "true");
+    clearTimeout(widerrufTimer);
+    if (sichtbar) widerrufTimer = setTimeout(zeigeWiderruf, UNDO_MS - (jetzt - widerrufe[0].zeit) + 20);
+  }
+  function merkeWiderruf(w){ w.zeit = Date.now(); widerrufe.push(w); zeigeWiderruf(); }
+  document.getElementById("undoToast").addEventListener("click", function(){
+    var w = widerrufe.pop();
+    if (w) {
+      updateTodo(w.id, { status: w.status, waitingOn: w.waitingOn || "", followUpDate: w.followUpDate || null });
+      if (w.folgeId) deleteTodo(w.folgeId);   // die beim Abhaken erzeugte Wiederholung
+    }
+    zeigeWiderruf();
+  });
 
   function markWaiting(id){
     var t = state.todos.find(function(x){ return x.id === id; });
@@ -2035,7 +2090,8 @@
     var action = el.getAttribute("data-action");
     var id = el.getAttribute("data-id");
 
-    if (action === "cycle") { cycleStatus(id); }
+    if (action === "done") { markDone(id); }
+    else if (action === "reopen") { updateTodo(id, { status: "open" }); }
     else if (action === "toggle-sub") {
       var k = state.todos.find(function(x){ return x.id === id; });
       if (k) updateTodo(id, { status: k.status === "done" ? "open" : "done" });
