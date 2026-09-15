@@ -880,18 +880,33 @@
 <div class="settings-backdrop" id="settingsBackdrop" style="display:none;">
   <div class="card settings-panel">
     <h2>Einstellungen</h2>
-    <div class="hint">Deine Tagesstruktur. Der Fokusblock liegt vormittags vor dem Gym und ist der einzige Ort für Fokusarbeit.</div>
+    <div class="hint">Deine Tagesstruktur. Von wann bis wann die Blöcke gehen — der Planer legt Aufgaben nur in diese Zeiten.</div>
+    <style>
+      .zeit-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
+      .zeit-row input[type="time"] { flex:1; min-width:0; margin-top:0; }
+      .zeit-row .bis { font-size:12.5px; color:var(--ink-muted); flex:none; }
+      .zeit-hint { font-size:11.5px; color:var(--ink-faint); margin-top:4px; }
+    </style>
     <div class="field">
-      <label for="deepInput">Block 1 · Fokus (Std.)</label>
-      <input type="number" id="deepInput" min="0" step="0.25" />
+      <label for="deepFrom">Block 1 · Fokus</label>
+      <div class="zeit-row">
+        <input type="time" id="deepFrom" step="900" />
+        <span class="bis">bis</span>
+        <input type="time" id="deepTo" step="900" />
+      </div>
     </div>
     <div class="field" style="margin-top:10px;">
-      <label for="shallowInput">Block 2 (Std.)</label>
-      <input type="number" id="shallowInput" min="0" step="0.25" />
+      <label for="shallowFrom">Block 2</label>
+      <div class="zeit-row">
+        <input type="time" id="shallowFrom" step="900" />
+        <span class="bis">bis</span>
+        <input type="time" id="shallowTo" step="900" />
+      </div>
     </div>
     <div class="field" style="margin-top:10px;">
       <label for="adminInput">Kleinkram-Slot (Min.)</label>
       <input type="number" id="adminInput" min="0" step="5" />
+      <div class="zeit-hint" id="adminHint">beginnt direkt nach Block 2</div>
     </div>
     <div class="field" style="margin-top:10px;">
       <label for="freeDayInput">Freier Tag</label>
@@ -965,6 +980,8 @@
     deepBlockMinutes: 210,
     shallowBlockMinutes: 150,
     adminSlotMinutes: 30,
+    deepBlockStart: "09:30",      // Beginn der Bloecke; Ende = Beginn + Laenge
+    shallowBlockStart: "17:00",
     freeWeekday: 0,
     followUpAfterDays: 14
   };
@@ -1198,12 +1215,28 @@
     nextStep: "next_step", notes: "notes"
   };
 
+  // ---- Blockzeiten: "HH:MM" plus Minuten ----
+  function istZeit(v){ return typeof v === "string" && /^\d{2}:\d{2}$/.test(v); }
+  function zeitPlus(hhmm, minuten){
+    var t = hhmm.split(":"), m = parseInt(t[0], 10) * 60 + parseInt(t[1], 10) + minuten;
+    m = ((m % 1440) + 1440) % 1440;
+    return (m < 600 ? "0" : "") + Math.floor(m / 60) + ":" + (m % 60 < 10 ? "0" : "") + (m % 60);
+  }
+  function zeitDiff(von, bis){
+    var a = von.split(":"), b = bis.split(":");
+    return (parseInt(b[0], 10) * 60 + parseInt(b[1], 10)) - (parseInt(a[0], 10) * 60 + parseInt(a[1], 10));
+  }
+  // Kleinkram beginnt direkt nach Block 2.
+  function adminStart(s){ return zeitPlus(s.shallowBlockStart, s.shallowBlockMinutes); }
+
   function rowToSettings(r){
     return {
       dailyCapacityMinutes: r.daily_capacity_minutes,
       deepBlockMinutes:    r.deep_block_minutes    != null ? r.deep_block_minutes    : DEFAULT_SETTINGS.deepBlockMinutes,
       shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULT_SETTINGS.shallowBlockMinutes,
       adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULT_SETTINGS.adminSlotMinutes,
+      deepBlockStart:      istZeit(r.deep_block_start)    ? r.deep_block_start    : DEFAULT_SETTINGS.deepBlockStart,
+      shallowBlockStart:   istZeit(r.shallow_block_start) ? r.shallow_block_start : DEFAULT_SETTINGS.shallowBlockStart,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULT_SETTINGS.freeWeekday,
       followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULT_SETTINGS.followUpAfterDays,
       replanRequestedAt:   r.replan_requested_at || null,
@@ -1276,6 +1309,8 @@
       deep_block_minutes: s.deepBlockMinutes,
       shallow_block_minutes: s.shallowBlockMinutes,
       admin_slot_minutes: s.adminSlotMinutes,
+      deep_block_start: s.deepBlockStart,
+      shallow_block_start: s.shallowBlockStart,
       free_weekday: s.freeWeekday,
       follow_up_after_days: s.followUpAfterDays
     }).then(function(res){
@@ -1424,10 +1459,11 @@
 
   function blocksForDay(date, settings){
     if (isFreeDay(date, settings)) return [];
+    var d0 = settings.deepBlockStart, s0 = settings.shallowBlockStart, a0 = adminStart(settings);
     var def = [
-      { name: "Block 1 · Fokus",       start: "09:30", time: "09:30–13:00", cap: settings.deepBlockMinutes,    accepts: ["deep","shallow"], items: [], order: { deep: 0, shallow: 5 } },
-      { name: "Block 2 · auch Fokus",  start: "17:00", time: "17:00–19:30", cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"], items: [], order: { deep: 1, shallow: 1 } },
-      { name: "Kleinkram",             start: "19:30", time: "19:30–20:00", cap: settings.adminSlotMinutes,    accepts: ["shallow"],        items: [], maxItem: settings.adminSlotMinutes, order: { shallow: 0 } }
+      { name: "Block 1 · Fokus",       start: d0, time: d0 + "–" + zeitPlus(d0, settings.deepBlockMinutes),    cap: settings.deepBlockMinutes,    accepts: ["deep","shallow"], items: [], order: { deep: 0, shallow: 5 } },
+      { name: "Block 2 · auch Fokus",  start: s0, time: s0 + "–" + zeitPlus(s0, settings.shallowBlockMinutes), cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"], items: [], order: { deep: 1, shallow: 1 } },
+      { name: "Kleinkram",             start: a0, time: a0 + "–" + zeitPlus(a0, settings.adminSlotMinutes),    cap: settings.adminSlotMinutes,    accepts: ["shallow"],        items: [], maxItem: settings.adminSlotMinutes, order: { shallow: 0 } }
     ];
     var heute = startOfToday();
     if (date.getTime() === heute.getTime()) {
@@ -2391,9 +2427,13 @@
   // ---------- Einstellungen ----------
   var backdrop = document.getElementById("settingsBackdrop");
   document.getElementById("settingsBtn").addEventListener("click", function(){
-    document.getElementById("deepInput").value    = state.settings.deepBlockMinutes / 60;
-    document.getElementById("shallowInput").value = state.settings.shallowBlockMinutes / 60;
-    document.getElementById("adminInput").value   = state.settings.adminSlotMinutes;
+    var st = state.settings;
+    document.getElementById("deepFrom").value    = st.deepBlockStart;
+    document.getElementById("deepTo").value      = zeitPlus(st.deepBlockStart, st.deepBlockMinutes);
+    document.getElementById("shallowFrom").value = st.shallowBlockStart;
+    document.getElementById("shallowTo").value   = zeitPlus(st.shallowBlockStart, st.shallowBlockMinutes);
+    document.getElementById("adminInput").value  = st.adminSlotMinutes;
+    document.getElementById("adminHint").textContent = "beginnt direkt nach Block 2, also " + adminStart(st);
     document.getElementById("freeDayInput").value = String(state.settings.freeWeekday);
     document.getElementById("followUpInput").value = state.settings.followUpAfterDays;
     backdrop.style.display = "flex";
@@ -2402,14 +2442,21 @@
   backdrop.addEventListener("click", function(e){ if (e.target === backdrop) backdrop.style.display = "none"; });
   document.getElementById("settingsSave").addEventListener("click", function(){
     var msg = document.getElementById("settingsMsg");
-    var deep    = parseFloat(document.getElementById("deepInput").value);
-    var shallow = parseFloat(document.getElementById("shallowInput").value);
     var admin   = parseInt(document.getElementById("adminInput").value, 10);
     var freeDay = document.getElementById("freeDayInput").value;
     var followUp = parseInt(document.getElementById("followUpInput").value, 10);
     var s = state.settings;
-    if (deep > 0)    s.deepBlockMinutes = Math.round(deep * 60);
-    if (shallow > 0) s.shallowBlockMinutes = Math.round(shallow * 60);
+    // Blockzeiten: "von" wird gespeichert, die Laenge als Minuten mitgeschrieben
+    // (davon leben Menue, Kapazitaetsrechnung und der Planer weiterhin).
+    var zeiten = [["deepFrom", "deepTo", "deepBlockStart", "deepBlockMinutes", "Block 1"],
+                  ["shallowFrom", "shallowTo", "shallowBlockStart", "shallowBlockMinutes", "Block 2"]];
+    for (var zi = 0; zi < zeiten.length; zi++) {
+      var von = document.getElementById(zeiten[zi][0]).value, bis = document.getElementById(zeiten[zi][1]).value;
+      if (!istZeit(von) || !istZeit(bis)) continue;                 // leer gelassen: bleibt wie es ist
+      var dauer = zeitDiff(von, bis);
+      if (dauer <= 0) { msg.textContent = zeiten[zi][4] + ": „bis“ muss nach „von“ liegen."; return; }
+      s[zeiten[zi][2]] = von; s[zeiten[zi][3]] = dauer;
+    }
     if (admin >= 0)  s.adminSlotMinutes = admin;
     s.freeWeekday = freeDay === "" ? null : parseInt(freeDay, 10);
     if (followUp > 0) s.followUpAfterDays = followUp;

@@ -491,8 +491,15 @@
   var DAY_NAMES = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
   var DEFAULTS = {
     dailyCapacityMinutes: 180, deepBlockMinutes: 210, shallowBlockMinutes: 150,
-    adminSlotMinutes: 30, freeWeekday: 0, followUpAfterDays: 14
+    adminSlotMinutes: 30, freeWeekday: 0, followUpAfterDays: 14,
+    deepBlockStart: "09:30", shallowBlockStart: "17:00"   // in der grossen Ansicht einstellbar
   };
+  function istZeit(v){ return typeof v === "string" && /^\d{2}:\d{2}$/.test(v); }
+  function zeitPlus(hhmm, minuten){
+    var t = hhmm.split(":"), m = parseInt(t[0], 10) * 60 + parseInt(t[1], 10) + minuten;
+    m = ((m % 1440) + 1440) % 1440;
+    return (m < 600 ? "0" : "") + Math.floor(m / 60) + ":" + (m % 60 < 10 ? "0" : "") + (m % 60);
+  }
 
   var state = { todos: [], applications: [], settings: Object.assign({}, DEFAULTS) };
   var sb = null, currentUser = null, channel = null;
@@ -607,6 +614,8 @@
       deepBlockMinutes:    r.deep_block_minutes    != null ? r.deep_block_minutes    : DEFAULTS.deepBlockMinutes,
       shallowBlockMinutes: r.shallow_block_minutes != null ? r.shallow_block_minutes : DEFAULTS.shallowBlockMinutes,
       adminSlotMinutes:    r.admin_slot_minutes    != null ? r.admin_slot_minutes    : DEFAULTS.adminSlotMinutes,
+      deepBlockStart:      istZeit(r.deep_block_start)    ? r.deep_block_start    : DEFAULTS.deepBlockStart,
+      shallowBlockStart:   istZeit(r.shallow_block_start) ? r.shallow_block_start : DEFAULTS.shallowBlockStart,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULTS.freeWeekday,
       followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULTS.followUpAfterDays,
       replanRequestedAt:   r.replan_requested_at || null,
@@ -767,10 +776,12 @@
         if (now <= start) return capMin;
         return Math.max(0, Math.round((ende - now) / 60000));
       };
+      // Blockbeginn aus den Einstellungen; Kleinkram direkt nach Block 2.
+      var d0 = cfg.deepBlockStart || "09:30", s0 = cfg.shallowBlockStart || "17:00";
       days.push({ date: date, free: isFreeDay(date, cfg), blocks: isFreeDay(date, cfg) ? [] : [
-        { cap: kap("09:30", cfg.deepBlockMinutes),    accepts: ["deep","shallow"], used: 0, order: { deep: 0, shallow: 5 } },
-        { cap: kap("17:00", cfg.shallowBlockMinutes), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
-        { cap: kap("19:30", cfg.adminSlotMinutes),    accepts: ["shallow"],        used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
+        { cap: kap(d0, cfg.deepBlockMinutes),    accepts: ["deep","shallow"], used: 0, order: { deep: 0, shallow: 5 } },
+        { cap: kap(s0, cfg.shallowBlockMinutes), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
+        { cap: kap(zeitPlus(s0, cfg.shallowBlockMinutes), cfg.adminSlotMinutes), accepts: ["shallow"], used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
       ]});
     }
     var ordered = orderWithDeps(list, cfg, now);
