@@ -599,6 +599,29 @@
     padding: 2px 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-faint);
   }
 
+  /* ---------- "Erst nach": Vorgaenger waehlen (wie in menu.html) ---------- */
+  .nach-btn {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; color: var(--ink-muted); text-align: left; min-width: 180px;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+  .nach-btn:hover { background: var(--border-soft); }
+  .nach-btn[data-count]:not([data-count="0"]) { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  /* Jede Aufgabe eine Zeile, nur der Name; was nicht passt, laeuft mit "..." aus. */
+  .nach-panel { margin-top: 8px; border: 1px solid var(--border); border-radius: 8px;
+                background: var(--surface-2); max-height: 220px; overflow-y: auto; }
+  .nach-panel .nach-leer { padding: 8px 12px; font-size: 12.5px; color: var(--ink-faint); }
+  .nach-row {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    border-bottom: 1px solid var(--border-soft); padding: 7px 12px; font-size: 13px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.12s ease;
+  }
+  .nach-row:last-child { border-bottom: none; }
+  .nach-row:hover { background: var(--border-soft); }
+  .nach-row[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); font-weight: 600; }
+  .nach-row[aria-pressed="true"]::before { content: "\2713  "; }
+  .nach-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .field select {
     background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-s);
     padding: 9px 11px; font-size: 14.5px; color: var(--ink); width: 100%;
@@ -741,6 +764,12 @@
             <label for="f-parent">Gehört zu</label>
             <select id="f-parent"><option value="">— eigenständig —</option></select>
           </div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label for="f-nach">Erst nach</label>
+          <button type="button" class="nach-btn" id="f-nach" data-count="0" title="Diese Aufgabe kommt im Kalender erst hinter die gewählten">nach…</button>
+          <!-- Vorgaenger-Auswahl: eine Zeile je Aufgabe, nur der Name. -->
+          <div class="nach-panel" id="f-nachPanel" hidden></div>
         </div>
       </details>
       <div class="quickadd-bottom">
@@ -1109,6 +1138,7 @@
       scheduledEnd: r.scheduled_end || null,
       calendarEventId: r.calendar_event_id || null,
       outside: !!r.outside,
+      blockedBy: Array.isArray(r.blocked_by) ? r.blocked_by : [],
       createdAt: r.created_at, completedAt: r.completed_at
     };
   }
@@ -1126,6 +1156,7 @@
       task_type: t.taskType || "shallow",
       application_id: t.applicationId || null,
       outside: !!t.outside,
+      blocked_by: t.blockedBy || [],
       completed_at: t.completedAt
     };
   }
@@ -1135,7 +1166,7 @@
     deferUntil: "defer_until", waitingOn: "waiting_on", followUpDate: "follow_up_date",
     parentId: "parent_id", recurrence: "recurrence", taskType: "task_type",
     applicationId: "application_id", completedAt: "completed_at",
-    outside: "outside"
+    outside: "outside", blockedBy: "blocked_by"
   };
 
   function rowToApp(r){
@@ -1439,6 +1470,41 @@
     });
   }
 
+  // "Erst nach": Vorgaenger einer Aufgabe, soweit sie selbst in der Liste sind.
+  // Erledigte oder geloeschte zaehlen nicht mehr.
+  function blockerIn(t, byId){
+    return (t.blockedBy || []).filter(function(b){ return b !== t.id && byId[b]; });
+  }
+  // Wie der Planer: Vorgaenger erben zum Sortieren die frueheste Frist ihrer
+  // Nachfolger und stehen immer vor ihnen.
+  function orderWithDeps(list, settings, now){
+    var byId = {}; list.forEach(function(t){ byId[t.id] = t; });
+    var nach = {};
+    list.forEach(function(t){ blockerIn(t, byId).forEach(function(b){ (nach[b] = nach[b] || []).push(t.id); }); });
+    var cache = {};
+    function frist(id, pfad){
+      if (id in cache) return cache[id];
+      if (pfad[id]) return null;
+      pfad[id] = true;
+      var f = byId[id].dueDate || null;
+      (nach[id] || []).forEach(function(n){ var fn = frist(n, pfad); if (fn && (!f || fn < f)) f = fn; });
+      delete pfad[id];
+      return (cache[id] = f);
+    }
+    var sorted = sortForPlanning(list.map(function(t){ return Object.assign({}, t, { dueDate: frist(t.id, {}) }); }), settings, now)
+      .map(function(c){ return byId[c.id]; });
+    var out = [], fertig = {}, unterwegs = {};
+    function besuche(t){
+      if (fertig[t.id]) return;
+      unterwegs[t.id] = true;
+      blockerIn(t, byId).forEach(function(b){ if (!unterwegs[b]) besuche(byId[b]); });
+      delete unterwegs[t.id];
+      fertig[t.id] = true; out.push(t);
+    }
+    sorted.forEach(besuche);
+    return out;
+  }
+
   function buildDayPlan(sortedOpen, settings, overrides){
     overrides = overrides || {};
     var today = startOfToday();
@@ -1448,6 +1514,8 @@
       days.push({ date: date, free: isFreeDay(date, settings), blocks: blocksForDay(date, settings) });
     }
     var later = [], missed = [];
+    var byId = {}; sortedOpen.forEach(function(t){ byId[t.id] = t; });
+    var lastDayOf = {};
 
     sortedOpen.forEach(function(todo){
       var remaining = todo.estimatedMinutes;
@@ -1458,6 +1526,20 @@
         var d = Math.round((new Date(todo.deferUntil + "T00:00:00") - today) / 86400000);
         if (d > 0) earliest = d;
       }
+      // Erst nach den Vorgaengern: fruehestens an deren letztem Tag (der
+      // Planer legt es dort minutengenau dahinter). Hat ein Vorgaenger
+      // keinen Platz, hat auch diese Aufgabe keinen.
+      // Am selben Tag zaehlen nur die Bloecke NACH dem letzten Block des
+      // Vorgaengers (Bloecke liegen in Tagesreihenfolge vor).
+      var gesperrt = false, nachBlock = -1;
+      blockerIn(todo, byId).forEach(function(b){
+        var lb = lastDayOf[b];
+        if (!lb) { gesperrt = true; return; }
+        if (lb.di > earliest) { earliest = lb.di; nachBlock = lb.bi; }
+        else if (lb.di === earliest && lb.bi > nachBlock) nachBlock = lb.bi;
+      });
+      if (gesperrt) { lastDayOf[todo.id] = null; later.push(todo); return; }
+      var lastBlock = -1;
       for (var di = earliest; di < HORIZON_DAYS && remaining > 0; di++) {
         var day = days[di];
         if (day.free) continue;
@@ -1475,6 +1557,7 @@
           });
         for (var bi = 0; bi < order.length && remaining > 0; bi++) {
           var b = order[bi].b;
+          if (di === earliest && order[bi].i <= nachBlock) continue;   // erst nach dem Vorgaenger
           if (b.maxItem && todo.estimatedMinutes > b.maxItem) continue;
           var free = b.cap - b.items.reduce(function(sum, it){ return sum + it.minutes; }, 0);
           if (free <= 0) continue;
@@ -1491,9 +1574,11 @@
           }
           b.items.push({ todo: todo, minutes: alloc });
           remaining -= alloc;
+          if (lastDay === null || di > lastDay || (di === lastDay && order[bi].i > lastBlock)) lastBlock = order[bi].i;
           lastDay = di;
         }
       }
+      lastDayOf[todo.id] = remaining > 0 ? null : { di: lastDay, bi: lastBlock };
       if (remaining > 0) later.push(todo);
       else if (todo.dueDate && lastDay !== null) {
         var dueIdx = Math.round((new Date(todo.dueDate + "T00:00:00") - today) / 86400000);
@@ -1505,7 +1590,7 @@
 
   // Mehrfach planen: Was reisst, bekommt den Fokusblock frei und wird neu gelegt.
   function planAdaptive(sortedOpen, settings){
-    var ordered = sortForPlanning(sortedOpen, settings, new Date());
+    var ordered = orderWithDeps(sortedOpen, settings, new Date());
     var overrides = {};
     var plan = buildDayPlan(ordered, settings, overrides);
     for (var pass = 0; pass < 3; pass++) {
@@ -1618,6 +1703,8 @@
     if (followUpDue(todo)) html += '<span class="pill pill-critical">Nachfassen fällig</span>';
     if (todo.taskType === "deep") html += '<span class="deep-chip">Fokus</span>';
     if (todo.recurrence) html += '<span class="deep-chip">↻ ' + RECUR_LABEL[todo.recurrence] + '</span>';
+    var vor = offeneVorgaenger(todo);
+    if (vor.length) html += '<span class="deep-chip nach-chip" title="Kommt im Kalender erst nach: ' + escapeHtml(vor.join(", ")) + '">↳ nach: ' + escapeHtml(vor.join(", ")) + '</span>';
     html += '</div>';
 
     html += '<div class="todo-meta">';
@@ -1730,8 +1817,11 @@
     state.todos.filter(function(t){ return t.id !== todo.id && !t.parentId && t.status !== "done"; }).forEach(function(t){
       html += '<option value="' + t.id + '"' + (todo.parentId === t.id ? " selected" : "") + '>' + escapeHtml(t.title) + '</option>';
     });
-    html += '</select></div></div>' +
-      '<div class="settings-actions"><button type="button" class="btn btn-ghost" data-action="edit-cancel" data-id="' + todo.id + '">Abbrechen</button>' +
+    html += '</select></div></div>';
+    // "Erst nach": alle anderen offenen Aufgaben, die gewaehlten vorangekreuzt.
+    html += '<div class="field" style="margin-top:10px;"><label>Erst nach</label><div class="nach-panel" data-edit-nach>' +
+      nachZeilen(todo.blockedBy || [], todo.id) + '</div></div>';
+    html += '<div class="settings-actions"><button type="button" class="btn btn-ghost" data-action="edit-cancel" data-id="' + todo.id + '">Abbrechen</button>' +
       '<button type="button" class="btn btn-primary" data-action="edit-save" data-id="' + todo.id + '">Speichern</button></div></div>';
     return html;
   }
@@ -1874,6 +1964,7 @@
     renderAreaFilter();
     renderPipeline();
     refreshParentOptions();
+    if (!document.getElementById("f-nachPanel").hidden) renderNachPanel();
   }
 
   function refreshParentOptions(){
@@ -1888,6 +1979,47 @@
     sel.value = keep;
   }
 
+  // ---------- "Erst nach": Vorgaenger ----------
+  function offeneVorgaenger(t){
+    return (t.blockedBy || []).map(function(id){
+      var b = state.todos.find(function(x){ return x.id === id; });
+      return b && b.status !== "done" ? b.title : null;
+    }).filter(Boolean);
+  }
+  // Zeilen der Auswahl: nur der Name, alphabetisch, ohne die Aufgabe selbst.
+  function nachZeilen(gewaehlt, ausserId){
+    var list = state.todos.filter(function(t){ return t.status !== "done" && t.id !== ausserId; })
+      .sort(function(a, b){ return a.title.localeCompare(b.title, "de"); });
+    if (!list.length) return '<div class="nach-leer">Keine anderen Aufgaben.</div>';
+    return list.map(function(t){
+      var on = gewaehlt.indexOf(t.id) >= 0;
+      return '<button type="button" class="nach-row" data-nach="' + t.id + '" aria-pressed="' + on + '" title="' + escapeHtml(t.title) + '">' + escapeHtml(t.title) + '</button>';
+    }).join("");
+  }
+  var nachAuswahl = [];
+  function renderNachPanel(){
+    var panel = document.getElementById("f-nachPanel"), btn = document.getElementById("f-nach");
+    btn.setAttribute("data-count", String(nachAuswahl.length));
+    btn.textContent = nachAuswahl.length ? "nach " + nachAuswahl.length + " Aufgabe" + (nachAuswahl.length > 1 ? "n" : "") : "nach…";
+    if (!panel.hidden) panel.innerHTML = nachZeilen(nachAuswahl, null);
+  }
+  document.getElementById("f-nach").addEventListener("click", function(){
+    var panel = document.getElementById("f-nachPanel");
+    panel.hidden = !panel.hidden;
+    renderNachPanel();
+  });
+  document.getElementById("f-nachPanel").addEventListener("click", function(e){
+    var row = e.target.closest("[data-nach]"); if (!row) return;
+    var id = row.getAttribute("data-nach"), i = nachAuswahl.indexOf(id);
+    if (i >= 0) nachAuswahl.splice(i, 1); else nachAuswahl.push(id);
+    renderNachPanel();
+  });
+  // Im Bearbeiten-Formular: Zeile anklicken = an/aus, gelesen wird beim Speichern.
+  document.addEventListener("click", function(e){
+    var row = e.target.closest("[data-edit-nach] [data-nach]"); if (!row) return;
+    row.setAttribute("aria-pressed", row.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  });
+
   // ---------- mutations ----------
   function addTodo(data){
     var todo = {
@@ -1897,7 +2029,7 @@
       area: data.area || "Sonstiges", deferUntil: data.deferUntil || null,
       waitingOn: "", followUpDate: null, parentId: data.parentId || null,
       recurrence: data.recurrence || null, taskType: data.taskType || "shallow",
-      applicationId: data.applicationId || null,
+      applicationId: data.applicationId || null, blockedBy: data.blockedBy || [],
       scheduledStart: null, scheduledEnd: null, calendarEventId: null,
       createdAt: new Date().toISOString(), completedAt: null
     };
@@ -2139,6 +2271,8 @@
         patch.followUpDate = val('[data-edit="followUpDate"]') || null;
       }
       if (patch.parentId === id) patch.parentId = null;   // sich selbst als Elternteil verhindern
+      patch.blockedBy = Array.prototype.map.call(card.querySelectorAll('[data-edit-nach] [data-nach][aria-pressed="true"]'),
+        function(r){ return r.getAttribute("data-nach"); }).filter(function(b){ return b !== id; });
       editingId = null;
       updateTodo(id, patch);
     }
@@ -2182,10 +2316,14 @@
       deferUntil: datum("f-defer"),
       outside: document.getElementById("f-outside").checked,
       recurrence: document.getElementById("f-recur").value || null,
-      parentId: document.getElementById("f-parent").value || null
+      parentId: document.getElementById("f-parent").value || null,
+      blockedBy: nachAuswahl.slice()                                // "erst nach" diesen Aufgaben
     });
     var area = document.getElementById("f-area").value;
     this.reset();
+    nachAuswahl = [];
+    document.getElementById("f-nachPanel").hidden = true;
+    renderNachPanel();
     document.getElementById("f-area").value = area;   // Bereich bleibt stehen
     document.querySelectorAll("#prioritySegment button").forEach(function(b){ b.removeAttribute("aria-pressed"); });
     document.querySelector("#prioritySegment [data-value='medium']").setAttribute("aria-pressed","true");

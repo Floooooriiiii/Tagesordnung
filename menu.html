@@ -326,6 +326,30 @@
   }
   .composer-detail .haus-check input { cursor: pointer; margin: 0; accent-color: var(--accent); }
 
+  /* ---------- "Erst nach": Vorgaenger waehlen ---------- */
+  .nach-btn {
+    flex: none; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-s); padding: 5px 8px; font-size: 11.5px; color: var(--ink-muted);
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+  .nach-btn:hover { background: var(--border-soft); }
+  .nach-btn[aria-pressed="true"], .nach-btn[data-count]:not([data-count="0"]) { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  /* Jede Aufgabe eine Zeile, nur der Name; was nicht passt, laeuft mit "..." aus. */
+  .nach-panel { margin-top: 7px; border: 1px solid var(--border); border-radius: var(--radius-s);
+                background: var(--surface-2); max-height: 190px; overflow-y: auto; }
+  .nach-panel .nach-leer { padding: 8px 10px; font-size: 11.5px; color: var(--ink-faint); }
+  .nach-row {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    border-bottom: 1px solid var(--border-soft); padding: 6px 10px; font-size: 12px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background 0.12s ease;
+  }
+  .nach-row:last-child { border-bottom: none; }
+  .nach-row:hover { background: var(--border-soft); }
+  .nach-row[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-soft-ink); font-weight: 600; }
+  .nach-row[aria-pressed="true"]::before { content: "\2713  "; }
+  .nach-mini { font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
   .pipe-alert {
     margin: 0 0 8px; padding: 8px 10px; border-radius: var(--radius-s);
     background: var(--critical-soft); color: var(--critical-ink); font-size: 11.5px; line-height: 1.45;
@@ -395,7 +419,10 @@
           <button type="button" data-value="deep" title="Fokusarbeit — darf in Block 1 am Vormittag">Fokus</button>
           <button type="button" data-value="shallow" aria-pressed="true" title="Nebenbei — Block 2 und Kleinkram">Nebenbei</button>
         </div>
+        <button type="button" class="nach-btn" id="cNach" data-count="0" aria-pressed="false" title="Erst nach anderen Aufgaben: Diese Aufgabe kommt im Kalender erst hinter die gewählten">nach…</button>
       </div>
+      <!-- Vorgaenger-Auswahl: eine Zeile je Aufgabe, nur der Name. -->
+      <div class="nach-panel" id="cNachPanel" hidden></div>
     </form>
   </div>
 
@@ -551,6 +578,7 @@
              taskType: r.task_type || "shallow", applicationId: r.application_id || null,
              scheduledStart: r.scheduled_start || null, scheduledEnd: r.scheduled_end || null,
              outside: !!r.outside,
+             blockedBy: Array.isArray(r.blocked_by) ? r.blocked_by : [],
              createdAt: r.created_at, completedAt: r.completed_at };
   }
   function todoToRow(t){
@@ -560,10 +588,10 @@
              waiting_on: t.waitingOn || "", follow_up_date: t.followUpDate || null,
              parent_id: t.parentId || null, recurrence: t.recurrence || null,
              task_type: t.taskType || "shallow", application_id: t.applicationId || null,
-             outside: !!t.outside, completed_at: t.completedAt };
+             outside: !!t.outside, blocked_by: t.blockedBy || [], completed_at: t.completedAt };
   }
   var FIELD_MAP = {
-    outside: "outside",
+    outside: "outside", blockedBy: "blocked_by",
     title:"title", dueDate:"due_date", estimatedMinutes:"estimated_minutes", priority:"priority",
     notes:"notes", status:"status", area:"area", deferUntil:"defer_until", waitingOn:"waiting_on",
     followUpDate:"follow_up_date", parentId:"parent_id", recurrence:"recurrence",
@@ -679,9 +707,53 @@
   function isFreeDay(date, cfg){
     return cfg.freeWeekday !== null && cfg.freeWeekday !== undefined && date.getDay() === cfg.freeWeekday;
   }
+  // "Erst nach": Vorgaenger einer Aufgabe, soweit sie selbst in der Liste sind.
+  // Erledigte oder geloeschte zaehlen nicht mehr.
+  function blockerIn(t, byId){
+    return (t.blockedBy || []).filter(function(b){ return b !== t.id && byId[b]; });
+  }
+  // Sortierung wie der Planer: Vorgaenger erben zum Sortieren die frueheste
+  // Frist ihrer Nachfolger, und stehen immer vor ihnen.
+  function orderWithDeps(list, cfg, now){
+    var byId = {}; list.forEach(function(t){ byId[t.id] = t; });
+    var nach = {};
+    list.forEach(function(t){ blockerIn(t, byId).forEach(function(b){ (nach[b] = nach[b] || []).push(t.id); }); });
+    var cache = {};
+    function frist(id, pfad){
+      if (id in cache) return cache[id];
+      if (pfad[id]) return null;
+      pfad[id] = true;
+      var f = byId[id].dueDate || null;
+      (nach[id] || []).forEach(function(n){ var fn = frist(n, pfad); if (fn && (!f || fn < f)) f = fn; });
+      delete pfad[id];
+      return (cache[id] = f);
+    }
+    var klone = list.map(function(t){ return Object.assign({}, t, { dueDate: frist(t.id, {}) }); });
+    var sorted = klone.slice().sort(function(a, b){
+      var today = startOfToday();
+      var ta = targetDayIndex(a, today), tb = targetDayIndex(b, today);
+      if (ta === null && tb === null) return score(b, cfg, now) - score(a, cfg, now);
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      if (ta !== tb) return ta - tb;
+      return score(b, cfg, now) - score(a, cfg, now);
+    }).map(function(c){ return byId[c.id]; });
+    var out = [], fertig = {}, unterwegs = {};
+    function besuche(t){
+      if (fertig[t.id]) return;
+      unterwegs[t.id] = true;
+      blockerIn(t, byId).forEach(function(b){ if (!unterwegs[b]) besuche(byId[b]); });
+      delete unterwegs[t.id];
+      fertig[t.id] = true; out.push(t);
+    }
+    sorted.forEach(besuche);
+    return out;
+  }
+
   function buildPlan(list, cfg, now, overrides){
     overrides = overrides || {};
     var today = startOfToday(), HORIZON = 21;
+    var byId = {}; list.forEach(function(t){ byId[t.id] = t; });
     var days = [];
     for (var i = 0; i < HORIZON; i++) {
       var date = addDays(today, i);
@@ -701,14 +773,7 @@
         { cap: kap("19:30", cfg.adminSlotMinutes),    accepts: ["shallow"],        used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
       ]});
     }
-    var ordered = list.slice().sort(function(a, b){
-      var ta = targetDayIndex(a, today), tb = targetDayIndex(b, today);
-      if (ta === null && tb === null) return score(b, cfg, now) - score(a, cfg, now);
-      if (ta === null) return 1;
-      if (tb === null) return -1;
-      if (ta !== tb) return ta - tb;
-      return score(b, cfg, now) - score(a, cfg, now);
-    });
+    var ordered = orderWithDeps(list, cfg, now);
     var info = {};
     ordered.forEach(function(t){
       var remaining = t.estimatedMinutes, first = null, last = null;
@@ -717,18 +782,34 @@
         var d = Math.round((new Date(t.deferUntil + "T00:00:00") - today) / 86400000);
         if (d > 0) earliest = d;
       }
+      // Erst nach den Vorgaengern: fruehestens an deren letztem Tag (der
+      // Planer legt es dort minutengenau dahinter). Hat ein Vorgaenger
+      // keinen Platz, hat auch diese Aufgabe keinen.
+      // Am selben Tag zaehlen nur die Bloecke NACH dem letzten Block des
+      // Vorgaengers (Bloecke liegen in Tagesreihenfolge vor).
+      var gesperrt = false, nachBlock = -1;
+      blockerIn(t, byId).forEach(function(b){
+        var pi = info[b];
+        if (!pi || pi.last === null) { gesperrt = true; return; }
+        if (pi.last > earliest) { earliest = pi.last; nachBlock = pi.lastBlock; }
+        else if (pi.last === earliest && pi.lastBlock > nachBlock) nachBlock = pi.lastBlock;
+      });
+      if (gesperrt) { info[t.id] = { first: null, last: null, lastBlock: -1, missedBy: 0, unplaced: true, urgent: false }; return; }
+      var lastBlock = -1;
       for (var di = earliest; di < HORIZON && remaining > 0; di++) {
         var day = days[di];
         if (day.free) continue;
         var freeAll = !!overrides[t.id];
-        var order = day.blocks.filter(function(b){ return freeAll || b.accepts.indexOf(t.taskType) !== -1; })
+        var order = day.blocks.map(function(b, i){ b.idx = i; return b; })
+          .filter(function(b){ return freeAll || b.accepts.indexOf(t.taskType) !== -1; })
           .sort(function(x, y){
-            if (freeAll) return 0;
+            if (freeAll) return x.idx - y.idx;
             var ox = x.order && x.order[t.taskType], oy = y.order && y.order[t.taskType];
             return (ox == null ? 99 : ox) - (oy == null ? 99 : oy);
           });
         for (var bi = 0; bi < order.length && remaining > 0; bi++) {
           var b = order[bi];
+          if (di === earliest && b.idx <= nachBlock) continue;   // erst nach dem Vorgaenger
           if (b.maxItem && t.estimatedMinutes > b.maxItem) continue;
           var free = b.cap - b.used;
           if (free <= 0) continue;
@@ -743,6 +824,7 @@
           }
           b.used += alloc; remaining -= alloc;
           if (first === null) first = di;
+          if (last === null || di > last || (di === last && b.idx > lastBlock)) lastBlock = b.idx;
           last = di;
         }
       }
@@ -751,8 +833,8 @@
         var dueIdx = Math.round((new Date(t.dueDate + "T00:00:00") - today) / 86400000);
         if (last > dueIdx) missedBy = last - dueIdx;
       }
-      info[t.id] = { first: first, last: last, missedBy: missedBy, unplaced: remaining > 0,
-                     urgent: !!overrides[t.id] };
+      info[t.id] = { first: first, last: remaining > 0 ? null : last, lastBlock: lastBlock,
+                     missedBy: missedBy, unplaced: remaining > 0, urgent: !!overrides[t.id] };
     });
     return info;
   }
@@ -812,6 +894,8 @@
          '<span class="item-title">' + esc(t.title) + '</span></div>';
     if (t.notes) h += '<div class="item-notes">' + esc(t.notes) + '</div>';
     if (t.status === "waiting" && t.waitingOn) h += '<div class="sub-mini">⏳ ' + esc(t.waitingOn) + '</div>';
+    var vor = offeneVorgaenger(t);
+    if (vor.length) h += '<div class="nach-mini" title="Kommt im Kalender erst nach: ' + esc(vor.join(", ")) + '">↳ nach: ' + esc(vor.join(", ")) + '</div>';
     if (kids.length) {
       var dk = kids.filter(function(k){ return k.status === "done"; }).length;
       h += '<div class="sub-mini">' + dk + '/' + kids.length + ' Teilschritte</div>';
@@ -912,6 +996,7 @@
       }
     }
     host.innerHTML = html;
+    if (!document.getElementById("cNachPanel").hidden) renderNachPanel();
   }
 
   // ---------- mutations ----------
@@ -928,6 +1013,7 @@
     var t = { id: uid(), title: d.title, dueDate: d.dueDate || null, estimatedMinutes: d.estimatedMinutes,
               priority: d.priority, notes: d.notes || "", status: "open",
               area: d.area || "Sonstiges", deferUntil: d.deferUntil || null, outside: !!d.outside,
+              blockedBy: d.blockedBy || [],
               waitingOn: "", followUpDate: null,
               parentId: null, recurrence: d.recurrence || null, taskType: d.taskType || "shallow",
               applicationId: null, createdAt: new Date().toISOString(), completedAt: null };
@@ -990,6 +1076,42 @@
     persist(function(){ return dbDelete(id); });
   }
 
+  // ---------- "Erst nach": Vorgaenger ----------
+  function offeneVorgaenger(t){
+    return (t.blockedBy || []).map(function(id){
+      var b = state.todos.find(function(x){ return x.id === id; });
+      return b && b.status !== "done" ? b.title : null;
+    }).filter(Boolean);
+  }
+  var nachAuswahl = [];
+  function renderNachPanel(){
+    var panel = document.getElementById("cNachPanel"), btn = document.getElementById("cNach");
+    btn.setAttribute("data-count", String(nachAuswahl.length));
+    btn.textContent = nachAuswahl.length ? "nach " + nachAuswahl.length : "nach…";
+    if (panel.hidden) return;
+    var list = state.todos.filter(function(t){ return t.status !== "done"; })
+      .sort(function(a, b){ return a.title.localeCompare(b.title, "de"); });
+    // Nur der Name je Zeile — bewusst ohne Frist, Art oder Tag.
+    panel.innerHTML = list.length
+      ? list.map(function(t){
+          var on = nachAuswahl.indexOf(t.id) >= 0;
+          return '<button type="button" class="nach-row" data-nach="' + t.id + '" aria-pressed="' + on + '" title="' + esc(t.title) + '">' + esc(t.title) + '</button>';
+        }).join("")
+      : '<div class="nach-leer">Keine anderen Aufgaben.</div>';
+  }
+  document.getElementById("cNach").addEventListener("click", function(){
+    var panel = document.getElementById("cNachPanel");
+    panel.hidden = !panel.hidden;
+    this.setAttribute("aria-pressed", String(!panel.hidden));
+    renderNachPanel();
+  });
+  document.getElementById("cNachPanel").addEventListener("click", function(e){
+    var row = e.target.closest("[data-nach]"); if (!row) return;
+    var id = row.getAttribute("data-nach"), i = nachAuswahl.indexOf(id);
+    if (i >= 0) nachAuswahl.splice(i, 1); else nachAuswahl.push(id);
+    renderNachPanel();
+  });
+
   // ---------- events ----------
   document.addEventListener("click", function(e){
     var el = e.target.closest("[data-act]");
@@ -1046,11 +1168,16 @@
       taskType: tb ? tb.getAttribute("data-value") : "shallow",
       area: document.getElementById("cArea").value,
       deferUntil: datum("cDefer"),                                 // leer heisst: ab sofort
-      outside: document.getElementById("cOutside").checked
+      outside: document.getElementById("cOutside").checked,
+      blockedBy: nachAuswahl.slice()                               // "erst nach" diesen Aufgaben
     });
     document.getElementById("cTitle").value = "";
     document.getElementById("cDefer").value = "";
     document.getElementById("cOutside").checked = false;
+    nachAuswahl = [];
+    document.getElementById("cNachPanel").hidden = true;
+    document.getElementById("cNach").setAttribute("aria-pressed", "false");
+    renderNachPanel();
     document.getElementById("cTitle").focus();
   });
 
