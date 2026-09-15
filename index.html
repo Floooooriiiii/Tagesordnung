@@ -886,40 +886,75 @@
       .zeit-row input[type="time"] { flex:1; min-width:0; margin-top:0; }
       .zeit-row .bis { font-size:12.5px; color:var(--ink-muted); flex:none; }
       .zeit-hint { font-size:11.5px; color:var(--ink-faint); margin-top:4px; }
+      /* Woche | Tag — Pillen-Umschalter wie in Florians Vorlage */
+      .settings-panel [hidden] { display:none !important; }   /* .field ist display:flex — das schlaegt sonst hidden */
+      .pill-seg { display:inline-flex; align-self:flex-start; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:3px; gap:2px; }
+      .pill-seg button { border:none; background:transparent; border-radius:999px; padding:6px 18px; font-size:14px; color:var(--ink-muted);
+                         transition: background 0.15s ease, color 0.15s ease; }
+      .pill-seg button[aria-pressed="true"] { background:var(--border); color:var(--ink); font-weight:600; }
+      .pill-seg button:hover:not([aria-pressed="true"]) { color:var(--ink); }
+      /* Wochentage: sieben Kreise */
+      .tage-row { display:flex; gap:6px; margin-top:6px; }
+      .tage-row button { width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--surface-2);
+                         font-size:12.5px; font-weight:600; color:var(--ink-muted); display:inline-flex; align-items:center; justify-content:center;
+                         transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+      .tage-row button:hover { transform: translateY(-1px); }
+      .tage-row button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+      .tage-row button[data-frei="true"] { text-decoration: line-through; opacity: 0.75; }
+      .frei-btn { margin-top:8px; width:100%; }
+      .frei-btn[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
     </style>
     <div class="field">
-      <label for="deepFrom">Block 1 · Fokus</label>
-      <div class="zeit-row">
-        <input type="time" id="deepFrom" step="900" />
-        <span class="bis">bis</span>
-        <input type="time" id="deepTo" step="900" />
+      <label>Zeiten gelten</label>
+      <div class="pill-seg" id="modusSeg" role="group" aria-label="Zeiten gelten für">
+        <button type="button" data-value="woche" aria-pressed="true">Woche</button>
+        <button type="button" data-value="tag" aria-pressed="false">Tag</button>
       </div>
     </div>
-    <div class="field" style="margin-top:10px;">
-      <label for="shallowFrom">Block 2</label>
-      <div class="zeit-row">
-        <input type="time" id="shallowFrom" step="900" />
-        <span class="bis">bis</span>
-        <input type="time" id="shallowTo" step="900" />
+    <!-- Tag-Modus: Wochentag waehlen -->
+    <div class="field" id="tagWahlWrap" style="margin-top:10px;" hidden>
+      <label>Wochentag</label>
+      <div class="tage-row" id="tagWahl" role="group" aria-label="Wochentag">
+        <button type="button" data-wd="1">Mo</button><button type="button" data-wd="2">Di</button>
+        <button type="button" data-wd="3">Mi</button><button type="button" data-wd="4">Do</button>
+        <button type="button" data-wd="5">Fr</button><button type="button" data-wd="6">Sa</button>
+        <button type="button" data-wd="0">So</button>
+      </div>
+      <button type="button" class="btn btn-ghost frei-btn" id="freiBtn" aria-pressed="false">Freier Tag</button>
+    </div>
+    <!-- Zeiten (Woche: fuer alle Tage; Tag: fuer den gewaehlten) -->
+    <div id="zeitenWrap">
+      <div class="field" style="margin-top:10px;">
+        <label for="deepFrom">Block 1 · Fokus</label>
+        <div class="zeit-row">
+          <input type="time" id="deepFrom" step="900" />
+          <span class="bis">bis</span>
+          <input type="time" id="deepTo" step="900" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label for="shallowFrom">Block 2</label>
+        <div class="zeit-row">
+          <input type="time" id="shallowFrom" step="900" />
+          <span class="bis">bis</span>
+          <input type="time" id="shallowTo" step="900" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label for="adminInput">Kleinkram-Slot (Min.)</label>
+        <input type="number" id="adminInput" min="0" step="5" />
+        <div class="zeit-hint" id="adminHint">beginnt direkt nach Block 2</div>
       </div>
     </div>
-    <div class="field" style="margin-top:10px;">
-      <label for="adminInput">Kleinkram-Slot (Min.)</label>
-      <input type="number" id="adminInput" min="0" step="5" />
-      <div class="zeit-hint" id="adminHint">beginnt direkt nach Block 2</div>
-    </div>
-    <div class="field" style="margin-top:10px;">
-      <label for="freeDayInput">Freier Tag</label>
-      <select id="freeDayInput">
-        <option value="0">Sonntag</option>
-        <option value="1">Montag</option>
-        <option value="2">Dienstag</option>
-        <option value="3">Mittwoch</option>
-        <option value="4">Donnerstag</option>
-        <option value="5">Freitag</option>
-        <option value="6">Samstag</option>
-        <option value="">Keiner</option>
-      </select>
+    <!-- Woche-Modus: mehrere freie Tage -->
+    <div class="field" id="freiWocheWrap" style="margin-top:10px;">
+      <label>Freie Tage</label>
+      <div class="tage-row" id="freiWoche" role="group" aria-label="Freie Tage">
+        <button type="button" data-wd="1">Mo</button><button type="button" data-wd="2">Di</button>
+        <button type="button" data-wd="3">Mi</button><button type="button" data-wd="4">Do</button>
+        <button type="button" data-wd="5">Fr</button><button type="button" data-wd="6">Sa</button>
+        <button type="button" data-wd="0">So</button>
+      </div>
     </div>
     <div class="field" style="margin-top:10px;">
       <label for="followUpInput">Nachfassen nach (Tagen)</label>
@@ -983,6 +1018,7 @@
     deepBlockStart: "09:30",      // Beginn der Bloecke; Ende = Beginn + Laenge
     shallowBlockStart: "17:00",
     freeWeekday: 0,
+    blockPlan: null,              // Wochenplan (Woche/Tag), siehe tagesZeiten()
     followUpAfterDays: 14
   };
 
@@ -1046,16 +1082,17 @@
   }
 
   // ---------- Kapazität ----------
-  // Durchschnittliche Tageskapazität über die Woche: alle drei Blöcke,
-  // verteilt auf sechs Arbeitstage (der freie Tag zählt nicht mit).
+  // Durchschnittliche Tageskapazitaet ueber die Woche — Tage koennen verschieden lang oder frei sein.
   function dailyCapacity(settings){
-    var perWorkday = settings.deepBlockMinutes + settings.shallowBlockMinutes + settings.adminSlotMinutes;
-    var workdays = settings.freeWeekday === null || settings.freeWeekday === undefined ? 7 : 6;
-    return Math.max(30, Math.round(perWorkday * workdays / 7));
+    var summe = 0;
+    for (var wd = 0; wd < 7; wd++) {
+      var tz = tagesZeiten(settings, wd);
+      if (!tz.frei) summe += tz.deepMin + tz.shallowMin + tz.adminMin;
+    }
+    return Math.max(30, Math.round(summe / 7));
   }
   function isFreeDay(date, settings){
-    return settings.freeWeekday !== null && settings.freeWeekday !== undefined
-      && date.getDay() === settings.freeWeekday;
+    return tagesZeiten(settings, date.getDay()).frei;
   }
 
   // ---------- scoring ----------
@@ -1229,6 +1266,34 @@
   // Kleinkram beginnt direkt nach Block 2.
   function adminStart(s){ return zeitPlus(s.shallowBlockStart, s.shallowBlockMinutes); }
 
+  // Blockzeiten eines Wochentags (0 = Sonntag) — gleiche Aufloesung wie im
+  // Planer (tagesZeiten in planner.mjs): Tag-Modus je Tag, sonst die Woche;
+  // die alten Spalten sind der Rueckfall.
+  function wochenWerte(s){
+    var w = (s.blockPlan && s.blockPlan.woche) || {};
+    return {
+      frei: Array.isArray(w.frei) ? w.frei.slice() : (s.freeWeekday === null || s.freeWeekday === undefined ? [] : [s.freeWeekday]),
+      deepStart: istZeit(w.deepStart) ? w.deepStart : s.deepBlockStart,
+      deepMin: w.deepMin >= 0 ? w.deepMin : s.deepBlockMinutes,
+      shallowStart: istZeit(w.shallowStart) ? w.shallowStart : s.shallowBlockStart,
+      shallowMin: w.shallowMin >= 0 ? w.shallowMin : s.shallowBlockMinutes,
+      adminMin: w.adminMin >= 0 ? w.adminMin : s.adminSlotMinutes
+    };
+  }
+  function tagesZeiten(s, wd){
+    var woche = wochenWerte(s);
+    var t = (s.blockPlan && s.blockPlan.modus === "tag" && s.blockPlan.tage) ? s.blockPlan.tage[String(wd)] : null;
+    var tag = t ? {
+      frei: !!t.frei,
+      deepStart: istZeit(t.deepStart) ? t.deepStart : woche.deepStart, deepMin: t.deepMin >= 0 ? t.deepMin : woche.deepMin,
+      shallowStart: istZeit(t.shallowStart) ? t.shallowStart : woche.shallowStart, shallowMin: t.shallowMin >= 0 ? t.shallowMin : woche.shallowMin,
+      adminMin: t.adminMin >= 0 ? t.adminMin : woche.adminMin
+    } : { frei: woche.frei.indexOf(wd) >= 0, deepStart: woche.deepStart, deepMin: woche.deepMin,
+          shallowStart: woche.shallowStart, shallowMin: woche.shallowMin, adminMin: woche.adminMin };
+    tag.adminStart = zeitPlus(tag.shallowStart, tag.shallowMin);
+    return tag;
+  }
+
   function rowToSettings(r){
     return {
       dailyCapacityMinutes: r.daily_capacity_minutes,
@@ -1238,6 +1303,7 @@
       deepBlockStart:      istZeit(r.deep_block_start)    ? r.deep_block_start    : DEFAULT_SETTINGS.deepBlockStart,
       shallowBlockStart:   istZeit(r.shallow_block_start) ? r.shallow_block_start : DEFAULT_SETTINGS.shallowBlockStart,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULT_SETTINGS.freeWeekday,
+      blockPlan:           (r.block_plan && typeof r.block_plan === "object") ? r.block_plan : null,
       followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULT_SETTINGS.followUpAfterDays,
       replanRequestedAt:   r.replan_requested_at || null,
       replanDoneAt:        r.replan_done_at || null
@@ -1312,6 +1378,7 @@
       deep_block_start: s.deepBlockStart,
       shallow_block_start: s.shallowBlockStart,
       free_weekday: s.freeWeekday,
+      block_plan: s.blockPlan,
       follow_up_after_days: s.followUpAfterDays
     }).then(function(res){
       if (res.error) throw res.error;
@@ -1459,11 +1526,12 @@
 
   function blocksForDay(date, settings){
     if (isFreeDay(date, settings)) return [];
-    var d0 = settings.deepBlockStart, s0 = settings.shallowBlockStart, a0 = adminStart(settings);
+    var tz = tagesZeiten(settings, date.getDay());
+    var d0 = tz.deepStart, s0 = tz.shallowStart, a0 = tz.adminStart;
     var def = [
-      { name: "Block 1 · Fokus",       start: d0, time: d0 + "–" + zeitPlus(d0, settings.deepBlockMinutes),    cap: settings.deepBlockMinutes,    accepts: ["deep","shallow"], items: [], order: { deep: 0, shallow: 5 } },
-      { name: "Block 2 · auch Fokus",  start: s0, time: s0 + "–" + zeitPlus(s0, settings.shallowBlockMinutes), cap: settings.shallowBlockMinutes, accepts: ["deep","shallow"], items: [], order: { deep: 1, shallow: 1 } },
-      { name: "Kleinkram",             start: a0, time: a0 + "–" + zeitPlus(a0, settings.adminSlotMinutes),    cap: settings.adminSlotMinutes,    accepts: ["shallow"],        items: [], maxItem: settings.adminSlotMinutes, order: { shallow: 0 } }
+      { name: "Block 1 · Fokus",       start: d0, time: d0 + "–" + zeitPlus(d0, tz.deepMin),    cap: tz.deepMin,    accepts: ["deep","shallow"], items: [], order: { deep: 0, shallow: 5 } },
+      { name: "Block 2 · auch Fokus",  start: s0, time: s0 + "–" + zeitPlus(s0, tz.shallowMin), cap: tz.shallowMin, accepts: ["deep","shallow"], items: [], order: { deep: 1, shallow: 1 } },
+      { name: "Kleinkram",             start: a0, time: a0 + "–" + zeitPlus(a0, tz.adminMin),    cap: tz.adminMin,    accepts: ["shallow"],        items: [], maxItem: tz.adminMin, order: { shallow: 0 } }
     ];
     var heute = startOfToday();
     if (date.getTime() === heute.getTime()) {
@@ -2426,15 +2494,120 @@
 
   // ---------- Einstellungen ----------
   var backdrop = document.getElementById("settingsBackdrop");
+  // Entwurf des Wochenplans, solange das Blatt offen ist. Gespeichert wird
+  // erst mit "Speichern" — Umschalten und Tageswechsel aendern nur den Entwurf.
+  var entwurf = null, entwurfTag = 1;
+  var WD_KURZ = { 0: "So", 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa" };
+  function entwurfAusSettings(s){
+    var w = wochenWerte(s);
+    // eigen[wd]: der Tag hat eigene Werte (gespeichert oder gerade bearbeitet).
+    // Alle anderen erben beim Wechsel auf "Tag" die aktuellen Wochenwerte.
+    var e = { modus: (s.blockPlan && s.blockPlan.modus === "tag") ? "tag" : "woche", woche: w, tage: {}, eigen: {} };
+    for (var wd = 0; wd < 7; wd++) {
+      var t = (s.blockPlan && s.blockPlan.tage) ? s.blockPlan.tage[String(wd)] : null;
+      e.eigen[wd] = !!t;
+      // Ohne eigenen Eintrag erbt ein Tag die Wochenwerte.
+      e.tage[wd] = t ? {
+        frei: !!t.frei,
+        deepStart: istZeit(t.deepStart) ? t.deepStart : w.deepStart, deepMin: t.deepMin >= 0 ? t.deepMin : w.deepMin,
+        shallowStart: istZeit(t.shallowStart) ? t.shallowStart : w.shallowStart, shallowMin: t.shallowMin >= 0 ? t.shallowMin : w.shallowMin,
+        adminMin: t.adminMin >= 0 ? t.adminMin : w.adminMin
+      } : { frei: w.frei.indexOf(wd) >= 0, deepStart: w.deepStart, deepMin: w.deepMin,
+            shallowStart: w.shallowStart, shallowMin: w.shallowMin, adminMin: w.adminMin };
+    }
+    return e;
+  }
+  // Felder <-> Entwurf
+  function felderZeigen(z){
+    document.getElementById("deepFrom").value    = z.deepStart;
+    document.getElementById("deepTo").value      = zeitPlus(z.deepStart, z.deepMin);
+    document.getElementById("shallowFrom").value = z.shallowStart;
+    document.getElementById("shallowTo").value   = zeitPlus(z.shallowStart, z.shallowMin);
+    document.getElementById("adminInput").value  = z.adminMin;
+    document.getElementById("adminHint").textContent = "beginnt direkt nach Block 2, also " + zeitPlus(z.shallowStart, z.shallowMin);
+  }
+  // Liest die Felder in z; liefert eine Fehlermeldung oder "".
+  function felderLesen(z, name){
+    var paare = [["deepFrom", "deepTo", "deepStart", "deepMin", "Block 1"],
+                 ["shallowFrom", "shallowTo", "shallowStart", "shallowMin", "Block 2"]];
+    for (var i = 0; i < paare.length; i++) {
+      var von = document.getElementById(paare[i][0]).value, bis = document.getElementById(paare[i][1]).value;
+      if (!istZeit(von) || !istZeit(bis)) continue;                 // leer gelassen: bleibt wie es ist
+      var dauer = zeitDiff(von, bis);
+      if (dauer <= 0) return (name ? name + ", " : "") + paare[i][4] + ": „bis“ muss nach „von“ liegen.";
+      z[paare[i][2]] = von; z[paare[i][3]] = dauer;
+    }
+    var admin = parseInt(document.getElementById("adminInput").value, 10);
+    if (admin >= 0) z.adminMin = admin;
+    return "";
+  }
+  function aktuelleZeiten(){ return entwurf.modus === "tag" ? entwurf.tage[entwurfTag] : entwurf.woche; }
+  function blattZeichnen(){
+    var tag = entwurf.modus === "tag";
+    document.querySelectorAll("#modusSeg button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.getAttribute("data-value") === entwurf.modus)); });
+    document.getElementById("tagWahlWrap").hidden = !tag;
+    document.getElementById("freiWocheWrap").hidden = tag;
+    if (tag) {
+      document.querySelectorAll("#tagWahl button").forEach(function(b){
+        var wd = parseInt(b.getAttribute("data-wd"), 10);
+        b.setAttribute("aria-pressed", String(wd === entwurfTag));
+        b.setAttribute("data-frei", String(!!entwurf.tage[wd].frei));
+      });
+      var z = entwurf.tage[entwurfTag];
+      document.getElementById("freiBtn").setAttribute("aria-pressed", String(!!z.frei));
+      document.getElementById("freiBtn").textContent = z.frei ? "✓ Freier Tag" : "Freier Tag";
+      document.getElementById("zeitenWrap").hidden = !!z.frei;
+      felderZeigen(z);
+    } else {
+      document.querySelectorAll("#freiWoche button").forEach(function(b){
+        b.setAttribute("aria-pressed", String(entwurf.woche.frei.indexOf(parseInt(b.getAttribute("data-wd"), 10)) >= 0));
+      });
+      document.getElementById("zeitenWrap").hidden = false;
+      felderZeigen(entwurf.woche);
+    }
+  }
+  document.getElementById("modusSeg").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if (!b) return;
+    var fehler = felderLesen(aktuelleZeiten());                    // Eingaben mitnehmen
+    if (fehler) { document.getElementById("settingsMsg").textContent = fehler; return; }
+    entwurf.modus = b.getAttribute("data-value");
+    if (entwurf.modus === "tag") {
+      var w = entwurf.woche;
+      for (var wd = 0; wd < 7; wd++) if (!entwurf.eigen[wd]) entwurf.tage[wd] = {
+        frei: w.frei.indexOf(wd) >= 0, deepStart: w.deepStart, deepMin: w.deepMin,
+        shallowStart: w.shallowStart, shallowMin: w.shallowMin, adminMin: w.adminMin };
+    }
+    document.getElementById("settingsMsg").textContent = "";
+    blattZeichnen();
+  });
+  document.getElementById("tagWahl").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-wd]"); if (!b) return;
+    var z = entwurf.tage[entwurfTag];
+    if (!z.frei) { var fehler = felderLesen(z); if (fehler) { document.getElementById("settingsMsg").textContent = fehler; return; } }
+    entwurf.eigen[entwurfTag] = true;
+    entwurfTag = parseInt(b.getAttribute("data-wd"), 10);
+    document.getElementById("settingsMsg").textContent = "";
+    blattZeichnen();
+  });
+  document.getElementById("freiBtn").addEventListener("click", function(){
+    var z = entwurf.tage[entwurfTag];
+    if (!z.frei) felderLesen(z);
+    z.frei = !z.frei;
+    entwurf.eigen[entwurfTag] = true;
+    blattZeichnen();
+  });
+  document.getElementById("freiWoche").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-wd]"); if (!b) return;
+    var wd = parseInt(b.getAttribute("data-wd"), 10), i = entwurf.woche.frei.indexOf(wd);
+    if (i >= 0) entwurf.woche.frei.splice(i, 1); else entwurf.woche.frei.push(wd);
+    blattZeichnen();
+  });
+
   document.getElementById("settingsBtn").addEventListener("click", function(){
-    var st = state.settings;
-    document.getElementById("deepFrom").value    = st.deepBlockStart;
-    document.getElementById("deepTo").value      = zeitPlus(st.deepBlockStart, st.deepBlockMinutes);
-    document.getElementById("shallowFrom").value = st.shallowBlockStart;
-    document.getElementById("shallowTo").value   = zeitPlus(st.shallowBlockStart, st.shallowBlockMinutes);
-    document.getElementById("adminInput").value  = st.adminSlotMinutes;
-    document.getElementById("adminHint").textContent = "beginnt direkt nach Block 2, also " + adminStart(st);
-    document.getElementById("freeDayInput").value = String(state.settings.freeWeekday);
+    entwurf = entwurfAusSettings(state.settings);
+    entwurfTag = new Date().getDay();
+    document.getElementById("settingsMsg").textContent = "";
+    blattZeichnen();
     document.getElementById("followUpInput").value = state.settings.followUpAfterDays;
     backdrop.style.display = "flex";
   });
@@ -2442,23 +2615,26 @@
   backdrop.addEventListener("click", function(e){ if (e.target === backdrop) backdrop.style.display = "none"; });
   document.getElementById("settingsSave").addEventListener("click", function(){
     var msg = document.getElementById("settingsMsg");
-    var admin   = parseInt(document.getElementById("adminInput").value, 10);
-    var freeDay = document.getElementById("freeDayInput").value;
     var followUp = parseInt(document.getElementById("followUpInput").value, 10);
     var s = state.settings;
-    // Blockzeiten: "von" wird gespeichert, die Laenge als Minuten mitgeschrieben
-    // (davon leben Menue, Kapazitaetsrechnung und der Planer weiterhin).
-    var zeiten = [["deepFrom", "deepTo", "deepBlockStart", "deepBlockMinutes", "Block 1"],
-                  ["shallowFrom", "shallowTo", "shallowBlockStart", "shallowBlockMinutes", "Block 2"]];
-    for (var zi = 0; zi < zeiten.length; zi++) {
-      var von = document.getElementById(zeiten[zi][0]).value, bis = document.getElementById(zeiten[zi][1]).value;
-      if (!istZeit(von) || !istZeit(bis)) continue;                 // leer gelassen: bleibt wie es ist
-      var dauer = zeitDiff(von, bis);
-      if (dauer <= 0) { msg.textContent = zeiten[zi][4] + ": „bis“ muss nach „von“ liegen."; return; }
-      s[zeiten[zi][2]] = von; s[zeiten[zi][3]] = dauer;
+    // Sichtbare Felder in den Entwurf uebernehmen, dann alles pruefen.
+    var ziel = aktuelleZeiten();
+    var fehler = ziel.frei ? "" : felderLesen(ziel, entwurf.modus === "tag" ? WD_KURZ[entwurfTag] : "");
+    if (fehler) { msg.textContent = fehler; return; }
+    if (entwurf.modus === "tag") {
+      var alleFrei = true;
+      for (var wd = 0; wd < 7; wd++) if (!entwurf.tage[wd].frei) alleFrei = false;
+      if (alleFrei) { msg.textContent = "Alle sieben Tage frei — dann kann nichts geplant werden."; return; }
     }
-    if (admin >= 0)  s.adminSlotMinutes = admin;
-    s.freeWeekday = freeDay === "" ? null : parseInt(freeDay, 10);
+    // Wochenplan speichern. Die alten Spalten spiegeln die Wochenwerte, damit
+    // Menue, Kapazitaetsrechnung und aeltere Stellen im Planer weiterrechnen.
+    var w = entwurf.woche;
+    s.blockPlan = { modus: entwurf.modus, woche: w, tage: {} };
+    for (var wd2 = 0; wd2 < 7; wd2++) s.blockPlan.tage[String(wd2)] = entwurf.tage[wd2];
+    s.deepBlockStart = w.deepStart;       s.deepBlockMinutes = w.deepMin;
+    s.shallowBlockStart = w.shallowStart; s.shallowBlockMinutes = w.shallowMin;
+    s.adminSlotMinutes = w.adminMin;
+    s.freeWeekday = w.frei.length ? w.frei.slice().sort()[0] : null;
     if (followUp > 0) s.followUpAfterDays = followUp;
     s.dailyCapacityMinutes = dailyCapacity(s);
     render();

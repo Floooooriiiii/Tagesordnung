@@ -448,18 +448,10 @@
 <div class="sheet-back" id="sheetBack" style="display:none;">
   <div class="sheet">
     <h2>Einstellungen</h2>
-    <label for="deepIn">Block 1 · Fokus (Std.)</label>
-    <input type="number" id="deepIn" min="0" step="0.25" />
-    <label for="shallowIn">Block 2 (Std.)</label>
-    <input type="number" id="shallowIn" min="0" step="0.25" />
-    <label for="adminIn">Kleinkram (Min.)</label>
-    <input type="number" id="adminIn" min="0" step="5" />
-    <label for="freeIn">Freier Tag</label>
-    <select id="freeIn" style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-s);padding:7px 9px;margin-top:4px;color:var(--ink);font-size:13px;">
-      <option value="0">Sonntag</option><option value="1">Montag</option><option value="2">Dienstag</option>
-      <option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option>
-      <option value="6">Samstag</option><option value="">Keiner</option>
-    </select>
+    <!-- Blockzeiten und freie Tage werden seit 15.09. je Wochentag in der
+         grossen Ansicht gesetzt. Hier nur anzeigen, sonst ueberschriebe das
+         Blatt still den Wochenplan. -->
+    <p class="msg" id="zeitenInfo" style="margin-top:0;"></p>
     <label for="newPw">Passwort setzen / ändern</label>
     <input type="password" id="newPw" autocomplete="new-password" placeholder="Mind. 6 Zeichen" />
     <p class="msg" id="sheetMsg"></p>
@@ -535,10 +527,36 @@
       return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
     });
   }
+  // Blockzeiten eines Wochentags — gleiche Aufloesung wie index.html und der
+  // Planer (tagesZeiten): Tag-Modus je Tag, sonst die Woche, sonst alte Spalten.
+  function tagesZeiten(s, wd){
+    var w = (s.blockPlan && s.blockPlan.woche) || {};
+    var woche = {
+      frei: Array.isArray(w.frei) ? w.frei.indexOf(wd) >= 0 : (s.freeWeekday !== null && s.freeWeekday !== undefined && s.freeWeekday === wd),
+      deepStart: istZeit(w.deepStart) ? w.deepStart : s.deepBlockStart, deepMin: w.deepMin >= 0 ? w.deepMin : s.deepBlockMinutes,
+      shallowStart: istZeit(w.shallowStart) ? w.shallowStart : s.shallowBlockStart, shallowMin: w.shallowMin >= 0 ? w.shallowMin : s.shallowBlockMinutes,
+      adminMin: w.adminMin >= 0 ? w.adminMin : s.adminSlotMinutes
+    };
+    var t = (s.blockPlan && s.blockPlan.modus === "tag" && s.blockPlan.tage) ? s.blockPlan.tage[String(wd)] : null;
+    var tag = t ? {
+      frei: !!t.frei,
+      deepStart: istZeit(t.deepStart) ? t.deepStart : woche.deepStart, deepMin: t.deepMin >= 0 ? t.deepMin : woche.deepMin,
+      shallowStart: istZeit(t.shallowStart) ? t.shallowStart : woche.shallowStart, shallowMin: t.shallowMin >= 0 ? t.shallowMin : woche.shallowMin,
+      adminMin: t.adminMin >= 0 ? t.adminMin : woche.adminMin
+    } : woche;
+    tag.adminStart = zeitPlus(tag.shallowStart, tag.shallowMin);
+    return tag;
+  }
+  function zeitenKurz(s){
+    if (s.blockPlan && s.blockPlan.modus === "tag") return "Zeiten je Wochentag";
+    var tz = tagesZeiten(s, 1);
+    return "Block 1 " + tz.deepStart + "–" + zeitPlus(tz.deepStart, tz.deepMin) + ", Block 2 " + tz.shallowStart + "–" + tz.adminStart;
+  }
+  // Durchschnitt ueber die Woche — Tage koennen verschieden lang oder frei sein.
   function dailyCapacity(cfg){
-    var per = cfg.deepBlockMinutes + cfg.shallowBlockMinutes + cfg.adminSlotMinutes;
-    var days = (cfg.freeWeekday === null || cfg.freeWeekday === undefined) ? 7 : 6;
-    return Math.max(30, Math.round(per * days / 7));
+    var summe = 0;
+    for (var wd = 0; wd < 7; wd++) { var tz = tagesZeiten(cfg, wd); if (!tz.frei) summe += tz.deepMin + tz.shallowMin + tz.adminMin; }
+    return Math.max(30, Math.round(summe / 7));
   }
   function slack(t, cfg, now){
     if (!t.dueDate) return null;
@@ -617,6 +635,7 @@
       deepBlockStart:      istZeit(r.deep_block_start)    ? r.deep_block_start    : DEFAULTS.deepBlockStart,
       shallowBlockStart:   istZeit(r.shallow_block_start) ? r.shallow_block_start : DEFAULTS.shallowBlockStart,
       freeWeekday:         r.free_weekday          != null ? r.free_weekday          : DEFAULTS.freeWeekday,
+      blockPlan:           (r.block_plan && typeof r.block_plan === "object") ? r.block_plan : null,
       followUpAfterDays:   r.follow_up_after_days  != null ? r.follow_up_after_days  : DEFAULTS.followUpAfterDays,
       replanRequestedAt:   r.replan_requested_at || null,
       replanDoneAt:        r.replan_done_at || null
@@ -713,9 +732,7 @@
     var due = Math.round((new Date(t.dueDate + "T00:00:00") - today) / 86400000);
     return due - bufferDays(due);
   }
-  function isFreeDay(date, cfg){
-    return cfg.freeWeekday !== null && cfg.freeWeekday !== undefined && date.getDay() === cfg.freeWeekday;
-  }
+  function isFreeDay(date, cfg){ return tagesZeiten(cfg, date.getDay()).frei; }
   // "Erst nach": Vorgaenger einer Aufgabe, soweit sie selbst in der Liste sind.
   // Erledigte oder geloeschte zaehlen nicht mehr.
   function blockerIn(t, byId){
@@ -776,12 +793,12 @@
         if (now <= start) return capMin;
         return Math.max(0, Math.round((ende - now) / 60000));
       };
-      // Blockbeginn aus den Einstellungen; Kleinkram direkt nach Block 2.
-      var d0 = cfg.deepBlockStart || "09:30", s0 = cfg.shallowBlockStart || "17:00";
-      days.push({ date: date, free: isFreeDay(date, cfg), blocks: isFreeDay(date, cfg) ? [] : [
-        { cap: kap(d0, cfg.deepBlockMinutes),    accepts: ["deep","shallow"], used: 0, order: { deep: 0, shallow: 5 } },
-        { cap: kap(s0, cfg.shallowBlockMinutes), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
-        { cap: kap(zeitPlus(s0, cfg.shallowBlockMinutes), cfg.adminSlotMinutes), accepts: ["shallow"], used: 0, maxItem: cfg.adminSlotMinutes, order: { shallow: 0 } }
+      // Blockzeiten je Wochentag; Kleinkram direkt nach Block 2.
+      var tz = tagesZeiten(cfg, date.getDay());
+      days.push({ date: date, free: tz.frei, blocks: tz.frei ? [] : [
+        { cap: kap(tz.deepStart, tz.deepMin),    accepts: ["deep","shallow"], used: 0, order: { deep: 0, shallow: 5 } },
+        { cap: kap(tz.shallowStart, tz.shallowMin), accepts: ["deep","shallow"], used: 0, order: { deep: 1, shallow: 1 } },
+        { cap: kap(tz.adminStart, tz.adminMin), accepts: ["shallow"], used: 0, maxItem: tz.adminMin, order: { shallow: 0 } }
       ]});
     }
     var ordered = orderWithDeps(list, cfg, now);
@@ -1223,10 +1240,7 @@
   // settings sheet
   var sheet = document.getElementById("sheetBack");
   document.getElementById("openSettings").addEventListener("click", function(){
-    document.getElementById("deepIn").value    = state.settings.deepBlockMinutes / 60;
-    document.getElementById("shallowIn").value = state.settings.shallowBlockMinutes / 60;
-    document.getElementById("adminIn").value   = state.settings.adminSlotMinutes;
-    document.getElementById("freeIn").value    = String(state.settings.freeWeekday);
+    document.getElementById("zeitenInfo").textContent = zeitenKurz(state.settings) + " — Blockzeiten und freie Tage stellst du in der großen Ansicht ein.";
     document.getElementById("newPw").value = "";
     document.getElementById("sheetMsg").textContent = "";
     document.getElementById("whoAmI").textContent = currentUser ? "Angemeldet als " + currentUser.email : "";
@@ -1236,18 +1250,8 @@
   sheet.addEventListener("click", function(e){ if (e.target === sheet) sheet.style.display = "none"; });
   document.getElementById("sheetSave").addEventListener("click", function(){
     var msg = document.getElementById("sheetMsg");
-    var deep = parseFloat(document.getElementById("deepIn").value);
-    var shal = parseFloat(document.getElementById("shallowIn").value);
-    var adm  = parseInt(document.getElementById("adminIn").value, 10);
-    var free = document.getElementById("freeIn").value;
-    var cfg = state.settings;
-    if (deep > 0) cfg.deepBlockMinutes = Math.round(deep*60);
-    if (shal > 0) cfg.shallowBlockMinutes = Math.round(shal*60);
-    if (adm >= 0) cfg.adminSlotMinutes = adm;
-    cfg.freeWeekday = free === "" ? null : parseInt(free, 10);
-    cfg.dailyCapacityMinutes = dailyCapacity(cfg);
-    render();
-    persist(function(){ return dbSettings(cfg); });
+    // Blockzeiten und freie Tage gehoeren der grossen Ansicht; hier gibt es
+    // nichts mehr zu speichern ausser dem Passwort.
 
     var pw = document.getElementById("newPw").value;
     if (pw) {
